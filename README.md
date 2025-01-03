@@ -11,4 +11,4 @@ cd src-tauri
 cargo run
 ```
 ## 打包
-- `cargo tauri build`:mac下打包为dmg
+- `cargo tauri build`:构建软件包
