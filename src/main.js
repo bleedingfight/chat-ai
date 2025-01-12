@@ -27,7 +27,43 @@ marked.setOptions({
     return code;
   },
   breaks: true,
-  gfm: true
+  gfm: true,
+  // 添加数学公式处理
+  extensions: [{
+    name: 'math',
+    level: 'inline',
+    start(src) { return src.match(/\$/)?.index; },
+    tokenizer(src, tokens) {
+      const match = src.match(/^\$+([^$\n]+?)\$+/);
+      if (match) {
+        return {
+          type: 'math',
+          raw: match[0],
+          text: match[1].trim()
+        };
+      }
+    },
+    renderer(token) {
+      return token.raw;
+    }
+  }, {
+    name: 'math',
+    level: 'block',
+    start(src) { return src.match(/\$\$/)?.index; },
+    tokenizer(src, tokens) {
+      const match = src.match(/^\$\$([\s\S]+?)\$\$/);
+      if (match) {
+        return {
+          type: 'math',
+          raw: match[0],
+          text: match[1].trim()
+        };
+      }
+    },
+    renderer(token) {
+      return token.raw;
+    }
+  }]
 });
 
 // 主题切换
@@ -55,15 +91,49 @@ function updateModelOptions(apiType) {
   }
 }
 
-// 处理 API 选择变化
+// 添加获取模型列表的函数
+async function fetchAvailableModels(apiUrl, apiKey) {
+  try {
+    const response = await invoke("fetch_models", {
+      apiUrl,
+      apiKey
+    });
+    
+    // 更新模型下拉列表
+    modelSelectEl.innerHTML = response.models.map(model => 
+      `<option value="${model}">${model}</option>`
+    ).join('');
+    
+    if (response.models.length > 0) {
+      modelSelectEl.value = response.models[0];
+      saveSettings();
+    }
+  } catch (error) {
+    console.error("获取模型列表失败:", error);
+    messageOutputEl.textContent = `获取模型列表失败：${error}`;
+    // 清空模型列表
+    modelSelectEl.innerHTML = '<option value="">无可用模型</option>';
+  }
+}
+
+// 修改 handleApiChange 函数
 function handleApiChange() {
   const apiType = apiSelectEl.value;
   
   // 显示/隐藏自定义 API 输入框
   apiUrlEl.classList.toggle('show', apiType === 'custom');
   
-  // 更新模型选项
-  if (apiType !== 'custom') {
+  if (apiType === 'custom') {
+    // 如果已经有 URL 和 API Key，尝试获取模型列表
+    const apiUrl = apiUrlEl.value.trim();
+    const apiKey = apiKeyEl.value.trim();
+    if (apiUrl && apiKey) {
+      fetchAvailableModels(apiUrl, apiKey);
+    } else {
+      modelSelectEl.innerHTML = '<option value="">请先填写 API URL 和 Key</option>';
+    }
+  } else {
+    // 使用预定义的模型列表
     updateModelOptions(apiType);
   }
 }
@@ -79,56 +149,69 @@ function saveSettings() {
   localStorage.setItem('chat-settings', JSON.stringify(settings));
 }
 
-function loadSettings() {
+// 修改 loadSettings 函数
+async function loadSettings() {
   const settings = JSON.parse(localStorage.getItem('chat-settings') || '{}');
   
+  // 先加载基本设置
   if (settings.apiKey) {
     apiKeyEl.value = settings.apiKey;
   }
   if (settings.apiType) {
     apiSelectEl.value = settings.apiType;
-    handleApiChange();
   }
   if (settings.apiUrl) {
     apiUrlEl.value = settings.apiUrl;
   }
+
+  // 处理 API 类型相关的设置
+  if (settings.apiType === 'custom') {
+    apiUrlEl.classList.add('show');
+    // 如果是自定义模式且有完整的 API 信息，自动获取模型列表
+    const apiUrl = settings.apiUrl?.trim();
+    const apiKey = settings.apiKey?.trim();
+    if (apiUrl && apiKey) {
+      try {
+        await fetchAvailableModels(apiUrl, apiKey);
+      } catch (error) {
+        console.error("自动获取模型列表失败:", error);
+        modelSelectEl.innerHTML = '<option value="">获取模型列表失败</option>';
+      }
+    } else {
+      modelSelectEl.innerHTML = '<option value="">请先填写 API URL 和 Key</option>';
+    }
+  } else {
+    // 使用预定义的模型列表
+    updateModelOptions(settings.apiType || 'deepseek');
+  }
+
+  // 最后设置选中的模型
   if (settings.model) {
     modelSelectEl.value = settings.model;
   }
 }
 
-function appendMessage(role, content) {
-  const messageDiv = document.createElement('div');
-  messageDiv.className = `message ${role}`;
-  
-  if (role === 'user') {
-    messageDiv.textContent = `你：${content}`;
-  } else {
-    // 对 AI 回复使用 Markdown 渲染
-    messageDiv.innerHTML = `AI：${marked.parse(content)}`;
-  }
-  
-  chatLogEl.appendChild(messageDiv);
-  chatLogEl.scrollTop = chatLogEl.scrollHeight;
-}
+// 添加一个 Map 来跟踪每个消息的状态
+const pendingMessages = new Map();
 
+// 在文件开头添加对话历史数组
+let conversationHistory = [];
+
+// 修改 chat 函数
 async function chat() {
   try {
-    // 获取用户输入的消息
     const message = messageInputEl.value.trim();
     if (!message) {
       messageOutputEl.textContent = "请输入你的问题！";
       return;
     }
 
-    // 检查 API Key
     const apiKey = apiKeyEl.value.trim();
     if (!apiKey) {
       messageOutputEl.textContent = "请输入 API Key！";
       return;
     }
 
-    // 获取 API URL
     const apiType = apiSelectEl.value;
     let apiUrl = API_ENDPOINTS[apiType];
     if (apiType === 'custom') {
@@ -139,56 +222,123 @@ async function chat() {
       }
     }
 
-    // 获取选择的模型
     const model = modelSelectEl.value;
-
-    // 清空错误信息
     messageOutputEl.textContent = "";
+    messageInputEl.value = "";
     
-    // 禁用输入框和按钮，防止重复发送
-    messageInputEl.disabled = true;
-    document.querySelector('button[type="submit"]').disabled = true;
-
-    // 显示用户消息
+    const messageId = Date.now().toString();
+    
+    // 构建带有上下文的消息
+    let contextMessage = message;
+    if (conversationHistory.length > 0) {
+      const contextPairs = [];
+      for (let i = 0; i < conversationHistory.length; i += 2) {
+        const userMsg = conversationHistory[i];
+        const aiMsg = conversationHistory[i + 1];
+        if (userMsg && aiMsg) {
+          contextPairs.push(`${userMsg.content}\n回答:${aiMsg.content}`);
+        }
+      }
+      contextMessage = `${contextPairs.join('\n')}\n${message}`;
+    }
+    
+    // 添加用户消息到历史记录
+    conversationHistory.push({
+      role: "user",
+      content: message  // 保存原始消息到历史记录
+    });
+    
     appendMessage('user', message);
-
-    // 显示正在思考的提示
+    
     const thinkingDiv = document.createElement('div');
     thinkingDiv.className = 'message ai thinking';
     thinkingDiv.textContent = 'AI：正在思考...';
     chatLogEl.appendChild(thinkingDiv);
-
-    // 调用后端 chat 函数
-    const response = await invoke("chat", { 
-      message,
-      apiKey,
-      apiUrl,
-      model
-    });
     
-    // 移除思考提示并显示回复
-    chatLogEl.removeChild(thinkingDiv);
-    appendMessage('ai', response);
+    pendingMessages.set(messageId, {
+      message: contextMessage,  // 使用带上下文的消息
+      thinkingDiv,
+      timestamp: Date.now()
+    });
 
-    // 清空输入框
-    messageInputEl.value = "";
+    // 添加日志输出
+    console.log('发送请求数据:', {
+      message: contextMessage,
+      apiKey: apiKey.substring(0, 4) + '****', // 只显示 API Key 的前四位
+      apiUrl,
+      model,
+      history: []
+    });
+
+    try {
+      // 调用后端 chat 函数，使用带上下文的消息
+      const response = await invoke("chat", { 
+        message: contextMessage,  // 发送带上下文的消息
+        apiKey,
+        apiUrl,
+        model,
+        history: []  // 不使用 history 参数，因为上下文已经包含在 message 中
+      });
+      
+      if (pendingMessages.has(messageId)) {
+        thinkingDiv.remove();
+        appendMessage('ai', response);
+        
+        // 添加 AI 回复到历史记录
+        conversationHistory.push({
+          role: "assistant",
+          content: response
+        });
+        
+        pendingMessages.delete(messageId);
+      }
+    } catch (error) {
+      if (pendingMessages.has(messageId)) {
+        thinkingDiv.remove();
+        messageOutputEl.textContent = `错误：${error}`;
+        pendingMessages.delete(messageId);
+        // 发生错误时，回滚最后一条用户消息
+        conversationHistory.pop();
+      }
+    }
+
   } catch (error) {
     console.error("Error:", error);
     messageOutputEl.textContent = `错误：${error}`;
-    
-    // 如果有思考提示，移除它
-    const thinkingDiv = chatLogEl.querySelector('.thinking');
-    if (thinkingDiv) {
-      chatLogEl.removeChild(thinkingDiv);
-    }
-  } finally {
-    // 重新启用输入框和按钮
-    messageInputEl.disabled = false;
-    document.querySelector('button[type="submit"]').disabled = false;
   }
 }
 
-window.addEventListener("DOMContentLoaded", () => {
+// 修改 appendMessage 函数，确保消息按顺序显示
+function appendMessage(role, content) {
+  const messageDiv = document.createElement('div');
+  messageDiv.className = `message ${role}`;
+  
+  if (role === 'user') {
+    messageDiv.textContent = `你：${content}`;
+  } else {
+    // 对 AI 回复使用 Markdown 渲染
+    messageDiv.innerHTML = `AI：${marked.parse(content)}`;
+    
+    // 触发 MathJax 重新渲染
+    if (window.MathJax) {
+      window.MathJax.typesetPromise([messageDiv]).catch((err) => {
+        console.error('MathJax rendering failed:', err);
+      });
+    }
+  }
+  
+  chatLogEl.appendChild(messageDiv);
+  chatLogEl.scrollTop = chatLogEl.scrollHeight;
+}
+
+// 添加清除历史的函数
+function clearHistory() {
+    conversationHistory = [];
+    chatLogEl.innerHTML = '';
+    messageOutputEl.textContent = '';
+}
+
+window.addEventListener("DOMContentLoaded", async () => {
   messageInputEl = document.querySelector("#greet-input");
   messageOutputEl = document.querySelector("#greet-msg");
   chatLogEl = document.querySelector("#chat-log");
@@ -206,8 +356,8 @@ window.addEventListener("DOMContentLoaded", () => {
   // 初始化主题
   initTheme();
   
-  // 加载设置
-  loadSettings();
+  // 加载设置（现在是异步的）
+  await loadSettings();
 
   // 设置主题切换按钮事件
   document.querySelector("#theme-toggle").addEventListener("click", toggleTheme);
@@ -235,4 +385,30 @@ window.addEventListener("DOMContentLoaded", () => {
       chat();
     }
   });
+
+  // 为自定义 API 输入框添加事件监听
+  apiUrlEl.addEventListener("change", () => {
+    if (apiSelectEl.value === 'custom') {
+      const apiUrl = apiUrlEl.value.trim();
+      const apiKey = apiKeyEl.value.trim();
+      if (apiUrl && apiKey) {
+        fetchAvailableModels(apiUrl, apiKey);
+      }
+    }
+    saveSettings();
+  });
+
+  apiKeyEl.addEventListener("change", () => {
+    if (apiSelectEl.value === 'custom') {
+      const apiUrl = apiUrlEl.value.trim();
+      const apiKey = apiKeyEl.value.trim();
+      if (apiUrl && apiKey) {
+        fetchAvailableModels(apiUrl, apiKey);
+      }
+    }
+    saveSettings();
+  });
+
+  // 添加清除历史按钮的事件监听
+  document.querySelector("#clear-history")?.addEventListener("click", clearHistory);
 });
