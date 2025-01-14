@@ -3,8 +3,11 @@
 
 use serde::{Deserialize, Serialize};
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE};
-use log::{info, error};
+use log::{debug, error, info};
 use std::env;
+use std::time::Instant;
+use futures_util::StreamExt;
+use tauri::Manager;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct ChatRequest {
@@ -25,16 +28,23 @@ struct ChatMessage {
 struct ChatPayload {
     model: String,
     messages: Vec<ChatMessage>,
+    stream: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-struct ChatResponse {
-    choices: Vec<Choice>,
+#[derive(Debug, Serialize, Deserialize)]
+struct StreamResponse {
+    choices: Vec<StreamChoice>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-struct Choice {
-    message: ChatMessage,
+#[derive(Debug, Serialize, Deserialize)]
+struct StreamChoice {
+    delta: DeltaContent,
+    finish_reason: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct DeltaContent {
+    content: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -53,12 +63,14 @@ struct AvailableModelsResponse {
 }
 
 #[tauri::command]
-async fn chat(message: String, api_key: String, api_url: String, model: String, history: Vec<ChatMessage>) -> Result<String, String> {
-    info!("收到请求:");
-    info!("API URL: {}", api_url);
-    info!("Model: {}", model);
-    info!("Message: {}", message);
-    info!("API Key: {}****", &api_key[..4]);
+async fn chat(app_handle: tauri::AppHandle, message: String, api_key: String, api_url: String, model: String, history: Vec<ChatMessage>) -> Result<String, String> {
+    debug!("收到请求:");
+    debug!("API URL: {}", api_url);
+    debug!("Model: {}", model);
+    debug!("Message: {}", message);
+    debug!("API Key: {}****", &api_key[..4]);
+    
+    let start_time = Instant::now();
     
     let client = reqwest::Client::new();
     
@@ -70,19 +82,19 @@ async fn chat(message: String, api_key: String, api_url: String, model: String, 
             .map_err(|e| e.to_string())?
     );
 
-    let messages = vec![
-        ChatMessage {
-            role: "user".to_string(),
-            content: message.clone(),
-        }
-    ];
+    let mut messages = history;
+    messages.push(ChatMessage {
+        role: "user".to_string(),
+        content: message.clone(),
+    });
 
     let payload = ChatPayload {
         model: model.clone(),
-        messages: messages.clone(),
+        messages,
+        stream: true,
     };
 
-    info!("发送到 API 的数据: {:?}", payload);
+    debug!("发送到 API 的数据: {:?}", payload);
 
     let response = client
         .post(&api_url)
@@ -98,14 +110,36 @@ async fn chat(message: String, api_key: String, api_url: String, model: String, 
         return Err(error_msg);
     }
 
-    let chat_response: ChatResponse = response
-        .json()
-        .await
-        .map_err(|e| e.to_string())?;
+    let mut response_text = String::new();
+    let mut stream = response.bytes_stream();
 
-    info!("API 响应: {:?}", chat_response);
+    while let Some(chunk) = stream.next().await {
+        let chunk = chunk.map_err(|e| e.to_string())?;
+        let chunk_str = String::from_utf8_lossy(&chunk);
+        
+        for line in chunk_str.lines() {
+            if line.starts_with("data: ") {
+                let data = &line["data: ".len()..];
+                if data == "[DONE]" {
+                    continue;
+                }
+                
+                if let Ok(stream_response) = serde_json::from_str::<StreamResponse>(data) {
+                    if let Some(choice) = stream_response.choices.first() {
+                        if let Some(content) = &choice.delta.content {
+                            response_text.push_str(content);
+                        }
+                    }
+                }
+            }
+        }
+    }
 
-    Ok(chat_response.choices[0].message.content.clone())
+    let elapsed = start_time.elapsed();
+    Ok(format!("{}\n<p style=\"color: green\">响应耗时: {:.2}秒</p>", 
+        response_text, 
+        elapsed.as_secs_f64()
+    ))
 }
 
 #[tauri::command]
@@ -161,11 +195,20 @@ async fn fetch_models(api_url: String, api_key: String) -> Result<AvailableModel
 }
 
 fn main() {
-    env::set_var("RUST_LOG", "info");
-    env_logger::init();
+    #[cfg(debug_assertions)]
+    {
+        env::set_var("RUST_LOG", "info");
+        env_logger::init();
+    }
 
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
+        .setup(|_| Ok(()))
         .invoke_handler(tauri::generate_handler![chat, fetch_models])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application");
+
+    app.run(|_app_handle, event| match event {
+        tauri::RunEvent::Ready => {}
+        _ => {}
+    });
 }

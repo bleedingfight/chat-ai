@@ -282,6 +282,7 @@ async function chat() {
       
       if (pendingMessages.has(messageId)) {
         thinkingDiv.remove();
+        console.log('收到响应:', response);
         appendMessage('ai', response);
         
         // 添加 AI 回复到历史记录

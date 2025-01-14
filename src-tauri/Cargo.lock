@@ -498,6 +498,7 @@ name = "chat-ai"
 version = "0.1.0"
 dependencies = [
  "env_logger",
+ "futures-util",
  "log",
  "reqwest 0.11.27",
  "serde",
@@ -3208,10 +3209,12 @@ dependencies = [
  "system-configuration",
  "tokio",
  "tokio-native-tls",
+ "tokio-util",
  "tower-service",
  "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
+ "wasm-streams",
  "web-sys",
  "winreg 0.50.0",
 ]
