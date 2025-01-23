@@ -186,10 +186,13 @@ async fn fetch_models(api_url: String, api_key: String) -> Result<AvailableModel
         .await
         .map_err(|e| e.to_string())?;
 
-    let models = models_response.data
+    let mut models: Vec<String> = models_response.data
         .into_iter()
         .map(|model| model.id)
         .collect();
+    
+    // 对模型列表进行字母顺序排序
+    models.sort();
 
     Ok(AvailableModelsResponse { models })
 }
