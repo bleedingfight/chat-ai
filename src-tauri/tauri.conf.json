@@ -6,6 +6,20 @@
   "build": {
     "frontendDist": "../src"
   },
+  "plugins": {
+    "shell": {
+      "open": true
+    },
+    "commands": {
+      "allowed": [
+        "chat",
+        "fetch_models",
+        "save_api_key",
+        "get_api_key",
+        "remove_api_key"
+      ]
+    }
+  },
   "app": {
     "withGlobalTauri": true,
     "windows": [
@@ -21,7 +35,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["app"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

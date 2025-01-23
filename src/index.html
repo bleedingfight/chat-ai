@@ -9,13 +9,12 @@
     <script type="module" src="/main.js" defer></script>
     <style>
       :root {
-        /* 亮色主题变量 */
         --bg-color: #ffffff;
         --text-color: #333333;
         --border-color: #dddddd;
         --input-bg: #ffffff;
         --message-user-bg: #e3f2fd;
-        --message-ai-bg: #f5f5f5;
+        --message-ai-bg: rgba(245, 245, 245, 0.9);
         --thinking-bg: #fff3e0;
         --code-bg: #f8f8f8;
         --pre-bg: #f8f8f8;
@@ -26,16 +25,16 @@
         --button-disabled: #bdbdbd;
         --error-color: #d32f2f;
         --quote-color: #666666;
+        --chat-bg-overlay: rgba(255, 255, 255, 0.7);
       }
 
       [data-theme="dark"] {
-        /* 暗色主题变量 */
         --bg-color: #1a1a1a;
         --text-color: #e0e0e0;
         --border-color: #404040;
         --input-bg: #2d2d2d;
         --message-user-bg: #1e3a5f;
-        --message-ai-bg: #2d2d2d;
+        --message-ai-bg: rgba(45, 45, 45, 0.9);
         --thinking-bg: #3d3223;
         --code-bg: #2d2d2d;
         --pre-bg: #2d2d2d;
@@ -46,6 +45,14 @@
         --button-disabled: #424242;
         --error-color: #ef5350;
         --quote-color: #9e9e9e;
+        --chat-bg-overlay: rgba(26, 26, 26, 0.7);
+      }
+
+      html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
       }
 
       * {
@@ -59,115 +66,165 @@
           "Helvetica Neue", Arial, sans-serif;
         background-color: var(--bg-color);
         color: var(--text-color);
-        transition:
-          background-color 0.3s,
-          color 0.3s;
+        transition: background-color 0.3s, color 0.3s;
+        display: flex;
+        flex-direction: column;
       }
 
       .container {
-        margin: 0 auto;
+        margin: 0;
         padding: 20px;
         display: flex;
         flex-direction: column;
-        height: 100vh;
-        max-width: 800px;
+        height: 100%;
+        width: 100%;
+        min-height: 0;
       }
 
-      .header {
+      .settings-container {
         display: flex;
-        justify-content: space-between;
-        align-items: center;
+        flex-direction: column;
         margin-bottom: 20px;
-        flex-wrap: wrap;
-        gap: 10px;
+        gap: 15px;
+        background-color: var(--bg-color);
+        background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='rgba(0,0,0,.03)' fill-rule='evenodd'/%3E%3C/svg%3E");
+        background-size: 150px 150px;
+        background-position: center;
+        background-repeat: repeat;
+        backdrop-filter: blur(5px);
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        width: 100%;
+      }
+
+      [data-theme="dark"] .settings-container {
+        background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='rgba(255,255,255,.03)' fill-rule='evenodd'/%3E%3C/svg%3E");
       }
 
       .settings {
         display: flex;
+        flex-direction: column;
         gap: 10px;
-        flex-wrap: wrap;
+        width: 100%;
+      }
+
+      .settings-row {
+        display: flex;
+        gap: 20px;
         align-items: center;
+        justify-content: center;
+        width: 100%;
       }
 
-      .api-key-input,
-      .api-url-input {
-        padding: 8px 12px;
-        border: 1px solid var(--border-color);
-        border-radius: 4px;
-        background: var(--input-bg);
-        color: var(--text-color);
-        font-size: 14px;
-        width: 260px;
-      }
-
-      .model-select,
-      .api-select {
-        padding: 8px 12px;
-        border: 1px solid var(--border-color);
-        border-radius: 4px;
-        background: var(--input-bg);
-        color: var(--text-color);
-        font-size: 14px;
-        cursor: pointer;
+      .api-container {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        min-width: 450px;  /* 根据URL长度调整容器宽度 */
       }
 
       .api-url-input {
-        display: none;
+        min-width: 450px;  /* 确保URL输入框有足够宽度 */
+        font-size: 14px;   /* 稍微减小字体以适应更多内容 */
       }
 
-      .api-url-input.show {
-        display: block;
+      .api-select,
+      .api-key-input {
+        min-width: 450px;  /* 保持一致的宽度 */
       }
 
-      .api-key-input:focus,
-      .model-select:focus,
-      .api-select:focus,
-      .api-url-input:focus {
-        border-color: var(--button-bg);
-        outline: none;
-      }
-
-      .model-select option,
-      .api-select option {
-        background: var(--bg-color);
+      .model-container label {
         color: var(--text-color);
+        font-size: 14px;
       }
 
       .theme-toggle {
-        background: none;
-        border: 1px solid var(--border-color);
-        padding: 8px 12px;
-        border-radius: 4px;
-        color: var(--text-color);
-        cursor: pointer;
-        font-size: 14px;
+        margin-left: auto;
+        margin-top: auto;  /* 将按钮推到底部 */
+        height: 37px;      /* 与其他输入框保持一致的高度 */
       }
 
-      .theme-toggle:hover {
-        background-color: var(--message-ai-bg);
+      .api-select,
+      .api-url-input,
+      .api-key-input {
+        padding: 8px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        color: var(--text-color);
+        background-color: var(--bg-color);
+        width: 100%;
+      }
+
+      #model-select {
+        min-width: 200px;
+        height: 37px;  /* 匹配单个输入框高度 */
+        padding: 8px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        color: var(--text-color);
+        background-color: var(--bg-color);
+      }
+
+      .model-container {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        min-width: 200px;
+      }
+
+      .model-container label {
+        margin-top: 35px;  /* 调整标签位置使select框与api-key对齐 */
+        font-size: 16px;
+        font-weight: bold;
+        color: var(--text-color);
+        transition: margin-top 0.3s;
+      }
+
+      /* 当 api-url 隐藏时应用的样式 */
+      .settings-row:has(.api-url-input[style*="display: none"]) .model-container label {
+        margin-top: 0;  /* 重置标签的上边距 */
+      }
+
+      /* 当 api-url 隐藏时调整主题切换按钮位置 */
+      .settings-row:has(.api-url-input[style*="display: none"]) .theme-toggle {
+        margin-top: 45px;  /* 调整按钮位置与api-key对齐 */
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 24px;
       }
 
       #chat-log {
-        flex: 1;
+        flex: 1 1 auto;
+        min-height: 0;
         overflow-y: auto;
         margin-bottom: 10px;
         padding: 15px;
         border: 1px solid var(--border-color);
         border-radius: 8px;
-        background: var(--bg-color);
+        background: var(--chat-bg-overlay);
+        background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='rgba(0,0,0,.05)' fill-rule='evenodd'/%3E%3C/svg%3E");
+        background-size: 300px 300px;
+        background-position: center;
+        background-repeat: repeat;
+        backdrop-filter: blur(5px);
       }
 
       .message {
         margin-bottom: 12px;
         padding: 8px 12px;
         border-radius: 6px;
-        max-width: 85%;
+        max-width: 95%;
         word-wrap: break-word;
+        backdrop-filter: blur(8px);
       }
 
       .message.user {
         background: var(--message-user-bg);
         margin-left: auto;
+        max-width: 85%;
       }
 
       .message.ai {
@@ -175,97 +232,8 @@
         margin-right: auto;
         margin-left: 0;
         text-align: left;
-      }
-
-      .message.ai * {
-        text-align: left;
-      }
-
-      .message.ai pre {
-        background: var(--pre-bg);
-        color: var(--pre-color);
-        padding: 12px;
-        border-radius: 4px;
-        overflow-x: auto;
-        margin: 8px 0;
-        border: 1px solid var(--pre-border);
-        font-size: 14px;
-        line-height: 1.5;
-        text-align: left;
-      }
-
-      .message.ai code {
-        font-family: "Menlo", "Monaco", "Courier New", Courier, monospace;
-        background: var(--code-bg);
-        padding: 2px 4px;
-        border-radius: 3px;
-        font-size: 0.9em;
-        border: 1px solid var(--pre-border);
-      }
-
-      .message.ai p {
-        margin: 8px 0;
-        text-align: left;
-      }
-
-      .message.ai h1,
-      .message.ai h2,
-      .message.ai h3,
-      .message.ai h4,
-      .message.ai h5,
-      .message.ai h6 {
-        text-align: left;
-        margin: 16px 0 8px 0;
-      }
-
-      .message.ai ul,
-      .message.ai ol {
-        margin: 8px 0;
-        padding-left: 20px;
-        text-align: left;
-      }
-
-      .message.ai li {
-        text-align: left;
-      }
-
-      .message.ai blockquote {
-        border-left: 4px solid var(--border-color);
-        margin: 8px 0;
-        padding-left: 10px;
-        color: var(--quote-color);
-        text-align: left;
-      }
-
-      .message.ai table {
-        border-collapse: collapse;
-        margin: 8px 0;
-        text-align: left;
-      }
-
-      .message.ai th,
-      .message.ai td {
-        border: 1px solid var(--border-color);
-        padding: 6px 10px;
-        text-align: left;
-      }
-
-      .message.ai img {
-        max-width: 100%;
-        margin: 8px 0;
-      }
-
-      .message.thinking {
-        background: var(--thinking-bg);
-        color: var(--quote-color);
-        font-style: italic;
-      }
-
-      #greet-msg {
-        color: var(--error-color);
-        margin-bottom: 10px;
-        min-height: 20px;
-        font-size: 14px;
+        max-width: 95%;
+        backdrop-filter: blur(5px);
       }
 
       .input-container {
@@ -275,6 +243,8 @@
         padding: 10px;
         border: 1px solid var(--border-color);
         border-radius: 8px;
+        backdrop-filter: blur(5px);
+        width: 100%;
       }
 
       #greet-input {
@@ -283,13 +253,9 @@
         border: 1px solid var(--border-color);
         border-radius: 4px;
         font-size: 14px;
-        outline: none;
         background: var(--input-bg);
         color: var(--text-color);
-      }
-
-      #greet-input:focus {
-        border-color: var(--button-bg);
+        min-width: 0;
       }
 
       button {
@@ -301,73 +267,57 @@
         cursor: pointer;
         font-size: 14px;
         transition: background-color 0.2s;
+        white-space: nowrap;
       }
 
       button:hover {
         background-color: var(--button-hover);
       }
 
-      button:disabled {
-        background-color: var(--button-disabled);
-        cursor: not-allowed;
-      }
-
       @media (max-width: 600px) {
         .container {
           padding: 10px;
         }
-
         .message {
           max-width: 95%;
         }
+        .header {
+          flex-direction: column;
+          align-items: stretch;
+        }
+        .settings {
+          justify-content: flex-start;
+        }
       }
     </style>
-    <script>
-      MathJax = {
-        tex: {
-          inlineMath: [['$', '$'], ['\\(', '\\)']],
-          displayMath: [['$$', '$$'], ['\\[', '\\]']],
-          processEscapes: true
-        },
-        svg: {
-          fontCache: 'global'
-        }
-      };
-    </script>
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
   </head>
-
   <body>
     <div class="container">
-      <div class="header">
-        <h1>AChat</h1>
+      <div class="settings-container">
         <div class="settings">
-          <select id="api-select" class="api-select">
-            <option value="deepseek">Deepseek API</option>
-            <option value="openai">OpenAI API</option>
-            <option value="custom">自定义 API</option>
-          </select>
-          <input
-            type="url"
-            id="api-url"
-            class="api-url-input"
-            placeholder="输入 API 地址"
-          />
-          <input
-            type="password"
-            id="api-key"
-            class="api-key-input"
-            placeholder="输入 API Key"
-          />
-          <select id="model-select" class="model-select">
-            <option value="deepseek-chat">Deepseek Chat</option>
-            <option value="deepseek-coder">Deepseek Coder</option>
-            <option value="mixtral-8x7b">Mixtral-8x7B</option>
-            <option value="llama2-70b">Llama2-70B</option>
-            <option value="gpt-4">GPT-4</option>
-            <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-          </select>
-          <button class="theme-toggle" id="theme-toggle">切换主题</button>
+         <div class="settings-row">
+           <div class="api-container">
+             <select id="api-select" class="api-select">
+               <option value="deepseek">Deepseek API</option>
+               <option value="openai">OpenAI API</option>
+               <option value="custom">自定义 API</option>
+             </select>
+             <input type="url" id="api-url" class="api-url-input" placeholder="输入 API 地址" />
+             <input type="password" id="api-key" class="api-key-input" placeholder="输入 API Key" />
+           </div>
+           <div class="model-container">
+             <label for="model-select">模型列表</label>
+             <select id="model-select" class="model-select">
+               <option value="deepseek-chat">Deepseek Chat</option>
+               <option value="deepseek-coder">Deepseek Coder</option>
+               <option value="mixtral-8x7b">Mixtral-8x7B</option>
+               <option value="llama2-70b">Llama2-70B</option>
+               <option value="gpt-4">GPT-4</option>
+               <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+             </select>
+           </div>
+           <button class="theme-toggle" id="theme-toggle">切换主题</button>
+         </div>
         </div>
       </div>
       <div id="chat-log"></div>
@@ -377,5 +327,54 @@
         <button type="submit">发送</button>
       </form>
     </div>
+    <script>
+      const API_CONFIGS = {
+        deepseek: {
+          url: 'https://api.deepseek.com/v1/chat/completions',
+          needsKey: true
+        },
+        openai: {
+          url: 'https://api.openai.com/v1/chat/completions',
+          needsKey: true
+        },
+        custom: {
+          needsKey: true,
+          needsUrl: true
+        }
+      };
+
+      document.getElementById('api-select').addEventListener('change', function(e) {
+        const apiType = e.target.value;
+        const apiUrlInput = document.querySelector('.api-url-input');
+        const apiKeyInput = document.querySelector('.api-key-input');
+        const config = API_CONFIGS[apiType];
+        
+        if (config) {
+          apiUrlInput.style.display = config.needsUrl ? 'block' : 'none';
+          apiKeyInput.style.display = config.needsKey ? 'block' : 'none';
+          
+          if (config.url) {
+            apiUrlInput.value = config.url;
+          }
+        }
+      });
+
+      // 初始化时触发一次 change 事件
+      const event = new Event('change');
+      document.getElementById('api-select').dispatchEvent(event);
+
+      // 获取 API 配置
+      function getApiConfig() {
+        const apiType = document.getElementById('api-select').value;
+        const apiUrlInput = document.querySelector('.api-url-input');
+        const apiKeyInput = document.querySelector('.api-key-input');
+        const config = API_CONFIGS[apiType];
+        
+        return {
+          url: config.needsUrl ? apiUrlInput.value : config.url,
+          key: apiKeyInput.value
+        };
+      }
+    </script>
   </body>
 </html>
