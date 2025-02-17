@@ -3,12 +3,13 @@ use log::{debug, error};
 use std::time::Instant;
 use futures_util::StreamExt;
 use std::fs;
+use tauri::{Window, Emitter};
 use crate::chat::{ChatMessage, ChatPayload, StreamResponse};
 use crate::models::{AvailableModelsResponse, ModelsResponse, ModelFrequency};
 use crate::cache::{get_cache_dir, MODEL_FREQUENCIES, update_frequency, encrypt_api_key, decrypt_api_key, delete_api_key, encrypt_api_url, decrypt_api_url, delete_api_url};
 
 #[tauri::command]
-pub async fn chat(_app_handle: tauri::AppHandle, message: String, api_key: String, api_url: String, model: String, history: Vec<ChatMessage>) -> Result<String, String> {
+pub async fn chat(window: Window, message: String, api_key: String, api_url: String, model: String, history: Vec<ChatMessage>) -> Result<String, String> {
     debug!("收到请求:");
     debug!("API URL: {}", api_url);
     debug!("Model: {}", model);
@@ -52,12 +53,12 @@ pub async fn chat(_app_handle: tauri::AppHandle, message: String, api_key: Strin
     if !response.status().is_success() {
         let error_msg = format!("API request failed with status: {}", response.status());
         error!("请求失败: {}", error_msg);
-        update_frequency(model, false);
+        update_frequency(model.clone(), false);
         return Err(error_msg);
     }
 
-    let mut response_text = String::new();
     let mut stream = response.bytes_stream();
+    let mut total_content = String::new();
 
     while let Some(chunk) = stream.next().await {
         let chunk = chunk.map_err(|e| e.to_string())?;
@@ -73,7 +74,9 @@ pub async fn chat(_app_handle: tauri::AppHandle, message: String, api_key: Strin
                 if let Ok(stream_response) = serde_json::from_str::<StreamResponse>(data) {
                     if let Some(choice) = stream_response.choices.first() {
                         if let Some(content) = &choice.delta.content {
-                            response_text.push_str(content);
+                            // 发送流式内容到前端
+                            window.emit("stream-response", &content).map_err(|e| e.to_string())?;
+                            total_content.push_str(content);
                         }
                     }
                 }
@@ -84,10 +87,7 @@ pub async fn chat(_app_handle: tauri::AppHandle, message: String, api_key: Strin
     update_frequency(model, true);
 
     let elapsed = start_time.elapsed();
-    Ok(format!("{}\n<p style=\"color: green\">响应耗时: {:.2}秒</p>", 
-        response_text, 
-        elapsed.as_secs_f64()
-    ))
+    Ok(format!("流式响应完成\n<p style=\"color: green\">响应耗时: {:.2}秒</p>", elapsed.as_secs_f64()))
 }
 
 /// 从 API 获取模型列表

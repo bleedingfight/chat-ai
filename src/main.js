@@ -1,4 +1,5 @@
 const { invoke } = window.__TAURI__.core;
+const { listen } = window.__TAURI__.event;
 const marked = window.marked;
 
 let messageInputEl;
@@ -22,6 +23,7 @@ const API_CONFIGS = {
     models: ["gpt-4", "gpt-3.5-turbo"]
   },
   custom: {
+    url:'https://api.360.cn/v1/chat/completions',
     needsKey: true,
     needsUrl: true
   }
@@ -289,6 +291,28 @@ const pendingMessages = new Map();
 let conversationHistory = [];
 
 // 修改 chat 函数
+let currentStreamDiv = null;
+let currentStreamContent = '';
+
+// 设置流式响应监听器
+async function setupStreamListener() {
+  await listen('stream-response', (event) => {
+    if (currentStreamDiv) {
+      currentStreamContent += event.payload;
+      currentStreamDiv.innerHTML = `AI：${marked.parse(currentStreamContent)}`;
+      
+      // 触发 MathJax 重新渲染
+      if (window.MathJax) {
+        window.MathJax.typesetPromise([currentStreamDiv]).catch((err) => {
+          console.error('MathJax rendering failed:', err);
+        });
+      }
+      
+      chatLogEl.scrollTop = chatLogEl.scrollHeight;
+    }
+  });
+}
+
 async function chat() {
   try {
     const message = messageInputEl.value.trim();
@@ -340,62 +364,37 @@ async function chat() {
     // 添加用户消息到历史记录
     conversationHistory.push({
       role: "user",
-      content: message  // 保存原始消息到历史记录
+      content: message
     });
     
     appendMessage('user', message);
     
-    const thinkingDiv = document.createElement('div');
-    thinkingDiv.className = 'message ai thinking';
-    thinkingDiv.textContent = 'AI：正在思考...';
-    chatLogEl.appendChild(thinkingDiv);
+    // 创建新的流式响应div
+    currentStreamContent = '';
+    currentStreamDiv = document.createElement('div');
+    currentStreamDiv.className = 'message ai';
+    currentStreamDiv.textContent = 'AI：正在思考...';
+    chatLogEl.appendChild(currentStreamDiv);
     
-    pendingMessages.set(messageId, {
-      message: contextMessage,  // 使用带上下文的消息
-      thinkingDiv,
-      timestamp: Date.now()
-    });
-
-    // 添加日志输出
-    console.log('发送请求数据:', {
-      message: contextMessage,
-      apiKey: apiKey.substring(0, 4) + '****', // 只显示 API Key 的前四位
-      apiUrl,
-      model,
-      history: []
-    });
-
     try {
-      // 调用后端 chat 函数，使用带上下文的消息
-      const response = await invoke("chat", { 
-        message: contextMessage,  // 发送带上下文的消息
+      const response = await invoke("chat", {
+        message: contextMessage,
         apiKey,
         apiUrl,
         model,
-        history: []  // 不使用 history 参数，因为上下文已经包含在 message 中
+        history: []
       });
       
-      if (pendingMessages.has(messageId)) {
-        thinkingDiv.remove();
-        console.log('收到响应:', response);
-        appendMessage('ai', response);
-        
-        // 添加 AI 回复到历史记录
-        conversationHistory.push({
-          role: "assistant",
-          content: response
-        });
-        
-        pendingMessages.delete(messageId);
-      }
+      // 流式响应完成后，保存到历史记录
+      conversationHistory.push({
+        role: "assistant",
+        content: currentStreamContent
+      });
+      
     } catch (error) {
-      if (pendingMessages.has(messageId)) {
-        thinkingDiv.remove();
-        messageOutputEl.textContent = `错误：${error}`;
-        pendingMessages.delete(messageId);
-        // 发生错误时，回滚最后一条用户消息
-        conversationHistory.pop();
-      }
+      currentStreamDiv.remove();
+      messageOutputEl.textContent = `错误：${error}`;
+      conversationHistory.pop(); // 发生错误时，回滚最后一条用户消息
     }
 
   } catch (error) {
@@ -451,6 +450,9 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   // 初始化主题
   initTheme();
+
+  // 设置流式响应监听器
+  await setupStreamListener();
   
   // 加载设置（现在是异步的）
   await loadSettings();
