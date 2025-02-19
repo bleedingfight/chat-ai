@@ -1,0 +1,11 @@
+{
+  "name": "chat-ai",
+  "private": true,
+  "version": "0.0.0",
+  "dependencies": {
+    "@tauri-apps/api": "^1.5.2"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^1.5.8"
+  }
+}
