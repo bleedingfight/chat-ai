@@ -48,7 +48,8 @@
         --chat-bg-overlay: rgba(26, 26, 26, 0.7);
       }
 
-      html, body {
+      html,
+      body {
         margin: 0;
         padding: 0;
         height: 100%;
@@ -66,7 +67,9 @@
           "Helvetica Neue", Arial, sans-serif;
         background-color: var(--bg-color);
         color: var(--text-color);
-        transition: background-color 0.3s, color 0.3s;
+        transition:
+          background-color 0.3s,
+          color 0.3s;
         display: flex;
         flex-direction: column;
       }
@@ -121,17 +124,17 @@
         display: flex;
         flex-direction: column;
         gap: 10px;
-        min-width: 450px;  /* 根据URL长度调整容器宽度 */
+        min-width: 450px; /* 根据URL长度调整容器宽度 */
       }
 
       .api-url-input {
-        min-width: 450px;  /* 确保URL输入框有足够宽度 */
-        font-size: 14px;   /* 稍微减小字体以适应更多内容 */
+        min-width: 450px; /* 确保URL输入框有足够宽度 */
+        font-size: 14px; /* 稍微减小字体以适应更多内容 */
       }
 
       .api-select,
       .api-key-input {
-        min-width: 450px;  /* 保持一致的宽度 */
+        min-width: 450px; /* 保持一致的宽度 */
       }
 
       .model-container label {
@@ -141,8 +144,8 @@
 
       .theme-toggle {
         margin-left: auto;
-        margin-top: auto;  /* 将按钮推到底部 */
-        height: 37px;      /* 与其他输入框保持一致的高度 */
+        margin-top: auto; /* 将按钮推到底部 */
+        height: 37px; /* 与其他输入框保持一致的高度 */
       }
 
       .api-select,
@@ -158,7 +161,7 @@
 
       #model-select {
         min-width: 200px;
-        height: 37px;  /* 匹配单个输入框高度 */
+        height: 37px; /* 匹配单个输入框高度 */
         padding: 8px 12px;
         border: 1px solid var(--border-color);
         border-radius: 4px;
@@ -174,7 +177,7 @@
       }
 
       .model-container label {
-        margin-top: 35px;  /* 调整标签位置使select框与api-key对齐 */
+        margin-top: 35px; /* 调整标签位置使select框与api-key对齐 */
         font-size: 16px;
         font-weight: bold;
         color: var(--text-color);
@@ -182,13 +185,15 @@
       }
 
       /* 当 api-url 隐藏时应用的样式 */
-      .settings-row:has(.api-url-input[style*="display: none"]) .model-container label {
-        margin-top: 0;  /* 重置标签的上边距 */
+      .settings-row:has(.api-url-input[style*="display: none"])
+        .model-container
+        label {
+        margin-top: 0; /* 重置标签的上边距 */
       }
 
       /* 当 api-url 隐藏时调整主题切换按钮位置 */
       .settings-row:has(.api-url-input[style*="display: none"]) .theme-toggle {
-        margin-top: 45px;  /* 调整按钮位置与api-key对齐 */
+        margin-top: 45px; /* 调整按钮位置与api-key对齐 */
       }
 
       h1 {
@@ -295,29 +300,39 @@
     <div class="container">
       <div class="settings-container">
         <div class="settings">
-         <div class="settings-row">
-           <div class="api-container">
-             <select id="api-select" class="api-select">
-               <option value="deepseek">Deepseek API</option>
-               <option value="openai">OpenAI API</option>
-               <option value="custom">自定义 API</option>
-             </select>
-             <input type="url" id="api-url" class="api-url-input" placeholder="输入 API 地址" />
-             <input type="password" id="api-key" class="api-key-input" placeholder="输入 API Key" />
-           </div>
-           <div class="model-container">
-             <label for="model-select">模型列表</label>
-             <select id="model-select" class="model-select">
-               <option value="deepseek-chat">Deepseek Chat</option>
-               <option value="deepseek-coder">Deepseek Coder</option>
-               <option value="mixtral-8x7b">Mixtral-8x7B</option>
-               <option value="llama2-70b">Llama2-70B</option>
-               <option value="gpt-4">GPT-4</option>
-               <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-             </select>
-           </div>
-           <button class="theme-toggle" id="theme-toggle">切换主题</button>
-         </div>
+          <div class="settings-row">
+            <div class="api-container">
+              <select id="api-select" class="api-select">
+                <option value="deepseek">Deepseek API</option>
+                <option value="openai">OpenAI API</option>
+                <option value="custom">自定义 API</option>
+              </select>
+              <input
+                type="url"
+                id="api-url"
+                class="api-url-input"
+                placeholder="输入 API 地址"
+              />
+              <input
+                type="password"
+                id="api-key"
+                class="api-key-input"
+                placeholder="输入 API Key"
+              />
+            </div>
+            <div class="model-container">
+              <label for="model-select">模型列表</label>
+              <select id="model-select" class="model-select">
+                <option value="deepseek-chat">Deepseek Chat</option>
+                <option value="deepseek-coder">Deepseek Coder</option>
+                <option value="mixtral-8x7b">Mixtral-8x7B</option>
+                <option value="llama2-70b">Llama2-70B</option>
+                <option value="gpt-4">GPT-4</option>
+                <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+              </select>
+            </div>
+            <button class="theme-toggle" id="theme-toggle">切换主题</button>
+          </div>
         </div>
       </div>
       <div id="chat-log"></div>
@@ -330,50 +345,52 @@
     <script>
       const API_CONFIGS = {
         deepseek: {
-          url: 'https://api.deepseek.com/v1/chat/completions',
-          needsKey: true
+          url: "https://api.deepseek.com/v1/chat/completions",
+          needsKey: true,
         },
         openai: {
-          url: 'https://api.openai.com/v1/chat/completions',
-          needsKey: true
+          url: "https://api.openai.com/v1/chat/completions",
+          needsKey: true,
         },
         custom: {
-          url: 'https://api.360.cn/v1/chat/completions',
+          url: "https://api.yourservice.cn/v1/chat/completions",
           needsKey: true,
-          needsUrl: true
-        }
+          needsUrl: true,
+        },
       };
 
-      document.getElementById('api-select').addEventListener('change', function(e) {
-        const apiType = e.target.value;
-        const apiUrlInput = document.querySelector('.api-url-input');
-        const apiKeyInput = document.querySelector('.api-key-input');
-        const config = API_CONFIGS[apiType];
-        
-        if (config) {
-          apiUrlInput.style.display = config.needsUrl ? 'block' : 'none';
-          apiKeyInput.style.display = config.needsKey ? 'block' : 'none';
-          
-          if (config.url) {
-            apiUrlInput.value = config.url;
+      document
+        .getElementById("api-select")
+        .addEventListener("change", function (e) {
+          const apiType = e.target.value;
+          const apiUrlInput = document.querySelector(".api-url-input");
+          const apiKeyInput = document.querySelector(".api-key-input");
+          const config = API_CONFIGS[apiType];
+
+          if (config) {
+            apiUrlInput.style.display = config.needsUrl ? "block" : "none";
+            apiKeyInput.style.display = config.needsKey ? "block" : "none";
+
+            if (config.url) {
+              apiUrlInput.value = config.url;
+            }
           }
-        }
-      });
+        });
 
       // 初始化时触发一次 change 事件
-      const event = new Event('change');
-      document.getElementById('api-select').dispatchEvent(event);
+      const event = new Event("change");
+      document.getElementById("api-select").dispatchEvent(event);
 
       // 获取 API 配置
       function getApiConfig() {
-        const apiType = document.getElementById('api-select').value;
-        const apiUrlInput = document.querySelector('.api-url-input');
-        const apiKeyInput = document.querySelector('.api-key-input');
+        const apiType = document.getElementById("api-select").value;
+        const apiUrlInput = document.querySelector(".api-url-input");
+        const apiKeyInput = document.querySelector(".api-key-input");
         const config = API_CONFIGS[apiType];
-        
+
         return {
           url: config.needsUrl ? apiUrlInput.value : config.url,
-          key: apiKeyInput.value
+          key: apiKeyInput.value,
         };
       }
     </script>
