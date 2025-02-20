@@ -302,6 +302,7 @@ let conversationHistory = [];
 // 修改 chat 函数
 let currentStreamDiv = null;
 let currentStreamContent = "";
+<<<<<<< HEAD
 let userScrolled = false;
 
 // 监听聊天记录的滚动事件
@@ -319,6 +320,8 @@ function smartScroll() {
     chatLogEl.scrollTop = chatLogEl.scrollHeight;
   }
 }
+=======
+>>>>>>> 891ab72 (删除废弃文件)
 
 // 设置流式响应监听器
 async function setupStreamListener() {
@@ -345,7 +348,11 @@ async function setupStreamListener() {
         });
       }
 
+<<<<<<< HEAD
       smartScroll();
+=======
+      chatLogEl.scrollTop = chatLogEl.scrollHeight;
+>>>>>>> 891ab72 (删除废弃文件)
     }
   });
 }
@@ -408,6 +415,7 @@ async function chat() {
 
     // 创建新的流式响应div
     currentStreamContent = "";
+<<<<<<< HEAD
     // 创建思考状态的div
     const thinkingDiv = document.createElement("div");
     thinkingDiv.className = "message ai";
@@ -421,6 +429,11 @@ async function chat() {
     currentStreamDiv = document.createElement("div");
     currentStreamDiv.className = "message ai";
     currentStreamDiv.style.display = "none";
+=======
+    currentStreamDiv = document.createElement("div");
+    currentStreamDiv.className = "message ai";
+    currentStreamDiv.textContent = "AI：正在思考...";
+>>>>>>> 891ab72 (删除废弃文件)
     chatLogEl.appendChild(currentStreamDiv);
 
     try {
@@ -437,9 +450,12 @@ async function chat() {
         role: "assistant",
         content: currentStreamContent,
       });
+<<<<<<< HEAD
       
       // 重置滚动状态，为下一次对话准备
       userScrolled = false;
+=======
+>>>>>>> 891ab72 (删除废弃文件)
     } catch (error) {
       currentStreamDiv.remove();
       messageOutputEl.textContent = `错误：${error}`;
@@ -502,9 +518,12 @@ window.addEventListener("DOMContentLoaded", async () => {
   // 设置流式响应监听器
   await setupStreamListener();
 
+<<<<<<< HEAD
   // 设置滚动监听器
   setupScrollListener();
 
+=======
+>>>>>>> 891ab72 (删除废弃文件)
   // 加载设置（现在是异步的）
   await loadSettings();
 
