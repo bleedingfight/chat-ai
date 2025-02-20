@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "chat-ai",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "identifier": "com.chat-ai.app",
   "build": {
     "frontendDist": "../src"
@@ -16,7 +16,10 @@
         "fetch_models",
         "save_api_key",
         "get_api_key",
-        "remove_api_key"
+        "remove_api_key",
+        "save_api_url",
+        "get_api_url",
+        "remove_api_url"
       ]
     }
   },
@@ -26,7 +29,8 @@
       {
         "title": "chat-ai",
         "width": 800,
-        "height": 600
+        "height": 600,
+        "visible": true
       }
     ],
     "security": {
@@ -35,6 +39,9 @@
   },
   "bundle": {
     "active": true,
+    "category": "Utility",
+    "shortDescription": "Chat AI Application",
+    "longDescription": "A chat application powered by AI",
     "targets": [
       "deb",
       "rpm",
@@ -47,7 +54,13 @@
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.icns",
-      "icons/icon.ico"
-    ]
+      "icons/icon.ico",
+      "icons/icon.png"
+    ],
+    "linux": {
+      "deb": {
+        "files": {}
+      }
+    }
   }
 }

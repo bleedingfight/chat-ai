@@ -1,6 +1,30 @@
 .logo.vanilla:hover {
   filter: drop-shadow(0 0 2em #ffe21c);
 }
+
+@keyframes hourglass {
+  0% {
+    content: "⌛";
+    opacity: 1;
+  }
+  50% {
+    content: "⏳";
+    opacity: 0.7;
+  }
+  100% {
+    content: "⌛";
+    opacity: 1;
+  }
+}
+
+.thinking-text::after {
+  content: "⌛";
+  display: inline-block;
+  margin-left: 5px;
+  animation: hourglass 1s infinite;
+  font-size: 1em;
+  vertical-align: middle;
+}
 :root {
   font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
   font-size: 16px;
