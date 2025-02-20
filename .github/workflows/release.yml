@@ -27,7 +27,7 @@ jobs:
         if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libappindicator3-dev librsvg2-dev patchelf pkg-config libsoup-3.0-0 libsoup-3.0-dev javascriptcoregtk-4.1 libwebkit2gtk-4.1-dev
+          sudo apt-get install -y libgtk-3-dev libappindicator3-dev librsvg2-dev patchelf pkg-config libsoup-3.0-0 libsoup-3.0-dev javascriptcoregtk-4.1 libwebkit2gtk-4.1-dev libfuse2
 
       - name: Build macOS App
         if: matrix.platform == 'macos-latest'

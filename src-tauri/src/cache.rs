@@ -3,11 +3,11 @@ use std::fs;
 use std::path::PathBuf;
 use std::env;
 use std::sync::Mutex;
-use log::{error, debug};
+use log::error;
 use lazy_static::lazy_static;
 use crate::models::ModelFrequency;
 use aes_gcm::{
-    aead::{Aead, KeyInit, OsRng},
+    aead::{Aead, KeyInit},
     Aes256Gcm, Nonce,
 };
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
@@ -36,7 +36,7 @@ fn init_cipher() -> Result<(), String> {
     } else {
         // 生成新密钥
         let mut key = [0u8; 32];
-        OsRng.fill_bytes(&mut key);
+        rand::rng().fill_bytes(&mut key);
         fs::create_dir_all(&cache_dir).map_err(|e| format!("无法创建缓存目录: {}", e))?;
         fs::write(&key_path, &key).map_err(|e| format!("无法保存加密密钥: {}", e))?;
         key.to_vec()
@@ -100,7 +100,7 @@ pub fn encrypt_api_key(api_key: &str) -> Result<(), String> {
     
     // 生成随机 nonce
     let mut nonce = [0u8; 12];
-    OsRng.fill_bytes(&mut nonce);
+    rand::rng().fill_bytes(&mut nonce);
     let nonce = Nonce::from_slice(&nonce);
     
     // 加密数据
@@ -167,7 +167,7 @@ pub fn encrypt_api_url(api_url: &str) -> Result<(), String> {
     
     // 生成随机 nonce
     let mut nonce = [0u8; 12];
-    OsRng.fill_bytes(&mut nonce);
+    rand::rng().fill_bytes(&mut nonce);
     let nonce = Nonce::from_slice(&nonce);
     
     // 加密数据
