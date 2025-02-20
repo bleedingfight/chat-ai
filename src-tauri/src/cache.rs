@@ -54,8 +54,24 @@ pub fn get_cache_dir() -> PathBuf {
     if let Ok(cache_dir) = env::var("CHATAICACHE") {
         PathBuf::from(cache_dir)
     } else {
-        let home = env::var("HOME").unwrap_or_else(|_| String::from("/"));
-        PathBuf::from(home).join(".cache/chat-ai")
+        if cfg!(target_os = "windows") {
+            // Windows: 使用 %LOCALAPPDATA%\chat-ai
+            if let Ok(app_data) = env::var("LOCALAPPDATA") {
+                PathBuf::from(app_data).join("chat-ai")
+            } else {
+                // 降级方案：使用 %USERPROFILE%\AppData\Local\chat-ai
+                let user_profile = env::var("USERPROFILE")
+                    .unwrap_or_else(|_| String::from("C:\\"));
+                PathBuf::from(user_profile)
+                    .join("AppData")
+                    .join("Local")
+                    .join("chat-ai")
+            }
+        } else {
+            // Unix/Linux/macOS: 使用 ~/.cache/chat-ai
+            let home = env::var("HOME").unwrap_or_else(|_| String::from("/"));
+            PathBuf::from(home).join(".cache/chat-ai")
+        }
     }
 }
 

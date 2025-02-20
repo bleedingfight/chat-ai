@@ -11,7 +11,7 @@ pub struct ModelData {
     pub id: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct AvailableModelsResponse {
     pub models: Vec<String>,
 }

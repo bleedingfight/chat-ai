@@ -231,6 +231,9 @@ pub async fn fetch_models(api_url: String, api_key: String) -> Result<AvailableM
 
 #[tauri::command]
 pub fn save_api_key(api_key: String) -> Result<(), String> {
+    if api_key.trim().is_empty() {
+        return Err("API key cannot be empty".to_string());
+    }
     encrypt_api_key(&api_key)
 }
 
@@ -246,6 +249,9 @@ pub fn remove_api_key() -> Result<(), String> {
 
 #[tauri::command]
 pub fn save_api_url(api_url: String) -> Result<(), String> {
+    if api_url.trim().is_empty() {
+        return Err("API URL cannot be empty".to_string());
+    }
     encrypt_api_url(&api_url)
 }
 
