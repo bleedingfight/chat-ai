@@ -39,9 +39,12 @@
   },
   "bundle": {
     "active": true,
+<<<<<<< HEAD
     "category": "Utility",
     "shortDescription": "Chat AI Application",
     "longDescription": "A chat application powered by AI",
+=======
+>>>>>>> 16d121a (更新appimage版本包)
     "targets": [
       "deb",
       "rpm",
