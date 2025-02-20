@@ -13,89 +13,96 @@ let apiUrlEl;
 // API 配置
 const API_CONFIGS = {
   deepseek: {
-    url: 'https://api.deepseek.com/v1/chat/completions',
+    url: "https://api.deepseek.com/v1/chat/completions",
     needsKey: true,
-    models: ["deepseek-chat", "deepseek-coder", "mixtral-8x7b", "llama2-70b"]
+    models: ["deepseek-chat", "deepseek-coder", "mixtral-8x7b", "llama2-70b"],
   },
   openai: {
-    url: 'https://api.openai.com/v1/chat/completions',
+    url: "https://api.openai.com/v1/chat/completions",
     needsKey: true,
-    models: ["gpt-4", "gpt-3.5-turbo"]
+    models: ["gpt-4", "gpt-3.5-turbo"],
   },
   custom: {
-    url:'https://api.360.cn/v1/chat/completions',
+    url: "https://api.youservice.cn/v1/chat/completions",
     needsKey: true,
-    needsUrl: true
-  }
+    needsUrl: true,
+  },
 };
 
 // 配置 marked
 marked.setOptions({
-  highlight: function(code, lang) {
+  highlight: function (code, lang) {
     return code;
   },
   breaks: true,
   gfm: true,
   // 添加数学公式处理
-  extensions: [{
-    name: 'math',
-    level: 'inline',
-    start(src) { return src.match(/\$/)?.index; },
-    tokenizer(src, tokens) {
-      const match = src.match(/^\$+([^$\n]+?)\$+/);
-      if (match) {
-        return {
-          type: 'math',
-          raw: match[0],
-          text: match[1].trim()
-        };
-      }
+  extensions: [
+    {
+      name: "math",
+      level: "inline",
+      start(src) {
+        return src.match(/\$/)?.index;
+      },
+      tokenizer(src, tokens) {
+        const match = src.match(/^\$+([^$\n]+?)\$+/);
+        if (match) {
+          return {
+            type: "math",
+            raw: match[0],
+            text: match[1].trim(),
+          };
+        }
+      },
+      renderer(token) {
+        return token.raw;
+      },
     },
-    renderer(token) {
-      return token.raw;
-    }
-  }, {
-    name: 'math',
-    level: 'block',
-    start(src) { return src.match(/\$\$/)?.index; },
-    tokenizer(src, tokens) {
-      const match = src.match(/^\$\$([\s\S]+?)\$\$/);
-      if (match) {
-        return {
-          type: 'math',
-          raw: match[0],
-          text: match[1].trim()
-        };
-      }
+    {
+      name: "math",
+      level: "block",
+      start(src) {
+        return src.match(/\$\$/)?.index;
+      },
+      tokenizer(src, tokens) {
+        const match = src.match(/^\$\$([\s\S]+?)\$\$/);
+        if (match) {
+          return {
+            type: "math",
+            raw: match[0],
+            text: match[1].trim(),
+          };
+        }
+      },
+      renderer(token) {
+        return token.raw;
+      },
     },
-    renderer(token) {
-      return token.raw;
-    }
-  }]
+  ],
 });
 
 // 主题切换
 function toggleTheme() {
-  const isDark = document.body.getAttribute('data-theme') === 'dark';
-  document.body.setAttribute('data-theme', isDark ? 'light' : 'dark');
-  localStorage.setItem('theme', isDark ? 'light' : 'dark');
+  const isDark = document.body.getAttribute("data-theme") === "dark";
+  document.body.setAttribute("data-theme", isDark ? "light" : "dark");
+  localStorage.setItem("theme", isDark ? "light" : "dark");
 }
 
 // 初始化主题
 function initTheme() {
-  const savedTheme = localStorage.getItem('theme') || 'light';
-  document.body.setAttribute('data-theme', savedTheme);
+  const savedTheme = localStorage.getItem("theme") || "light";
+  document.body.setAttribute("data-theme", savedTheme);
 }
 
 // 更新模型选项
 function updateModelOptions(apiType) {
   const config = API_CONFIGS[apiType];
   const models = config?.models || [];
-  
-  modelSelectEl.innerHTML = models.map(model =>
-    `<option value="${model}">${model}</option>`
-  ).join('');
-  
+
+  modelSelectEl.innerHTML = models
+    .map((model) => `<option value="${model}">${model}</option>`)
+    .join("");
+
   if (models.length > 0) {
     modelSelectEl.value = models[0];
   }
@@ -105,24 +112,24 @@ function updateModelOptions(apiType) {
 async function fetchAvailableModels(apiUrl, apiKey) {
   // 显示加载状态
   modelSelectEl.innerHTML = '<option value="">正在获取模型列表...</option>';
-  
+
   try {
     const response = await invoke("fetch_models", {
       apiUrl,
-      apiKey
+      apiKey,
     });
-    
+
     if (response.models && response.models.length > 0) {
       // 更新模型下拉列表
-      modelSelectEl.innerHTML = response.models.map(model =>
-        `<option value="${model}">${model}</option>`
-      ).join('');
-      
+      modelSelectEl.innerHTML = response.models
+        .map((model) => `<option value="${model}">${model}</option>`)
+        .join("");
+
       modelSelectEl.value = response.models[0];
       saveSettings();
-      
+
       // 清除之前的错误消息
-      messageOutputEl.textContent = '';
+      messageOutputEl.textContent = "";
     } else {
       modelSelectEl.innerHTML = '<option value="">未找到可用模型</option>';
     }
@@ -150,21 +157,21 @@ function debounce(func, wait) {
 async function handleApiChange() {
   const apiType = apiSelectEl.value;
   const config = API_CONFIGS[apiType];
-  
+
   if (!config) {
-    console.error('未知的 API 类型:', apiType);
+    console.error("未知的 API 类型:", apiType);
     return;
   }
 
   // 显示/隐藏输入框
-  apiUrlEl.style.display = config.needsUrl ? 'block' : 'none';
-  apiKeyEl.style.display = config.needsKey ? 'block' : 'none';
-  
+  apiUrlEl.style.display = config.needsUrl ? "block" : "none";
+  apiKeyEl.style.display = config.needsKey ? "block" : "none";
+
   // 如果有预定义的 URL，设置它
   if (config.url) {
     apiUrlEl.value = config.url;
   }
-  
+
   if (config.needsUrl) {
     // 对于自定义 API，尝试获取模型列表
     const apiUrl = apiUrlEl.value.trim();
@@ -192,7 +199,7 @@ async function saveSettings() {
   // 加密存储 API key 和 URL
   const apiKey = apiKeyEl.value.trim();
   const apiUrl = apiUrlEl.value.trim();
-  
+
   if (apiKey) {
     try {
       await invoke("save_api_key", { apiKey });
@@ -200,7 +207,7 @@ async function saveSettings() {
       console.error("保存 API key 失败:", error);
     }
   }
-  
+
   if (apiUrl) {
     try {
       await invoke("save_api_url", { apiUrl });
@@ -212,26 +219,26 @@ async function saveSettings() {
   // 只在 localStorage 中保存非敏感信息
   const settings = {
     apiType: apiSelectEl.value,
-    model: modelSelectEl.value
+    model: modelSelectEl.value,
   };
-  localStorage.setItem('chat-settings', JSON.stringify(settings));
+  localStorage.setItem("chat-settings", JSON.stringify(settings));
 }
 
 // 修改 loadSettings 函数
 async function loadSettings() {
-  const settings = JSON.parse(localStorage.getItem('chat-settings') || '{}');
-  
+  const settings = JSON.parse(localStorage.getItem("chat-settings") || "{}");
+
   // 从加密存储获取 API key 和 URL
   try {
     const [savedApiKey, savedApiUrl] = await Promise.all([
       invoke("get_api_key").catch(() => null),
-      invoke("get_api_url").catch(() => null)
+      invoke("get_api_url").catch(() => null),
     ]);
-    
+
     if (savedApiKey) {
       apiKeyEl.value = savedApiKey;
     }
-    
+
     if (savedApiUrl) {
       apiUrlEl.value = savedApiUrl;
     }
@@ -245,19 +252,19 @@ async function loadSettings() {
   }
 
   // 处理 API 类型相关的设置
-  const apiType = settings.apiType || 'deepseek';
+  const apiType = settings.apiType || "deepseek";
   const config = API_CONFIGS[apiType];
-  
+
   if (config) {
     // 设置显示/隐藏状态
-    apiUrlEl.style.display = config.needsUrl ? 'block' : 'none';
-    apiKeyEl.style.display = config.needsKey ? 'block' : 'none';
-    
+    apiUrlEl.style.display = config.needsUrl ? "block" : "none";
+    apiKeyEl.style.display = config.needsKey ? "block" : "none";
+
     // 如果有预定义的 URL，设置它
     if (config.url) {
       apiUrlEl.value = config.url;
     }
-    
+
     if (config.needsUrl) {
       // 如果需要自定义 URL 且有完整的 API 信息，自动获取模型列表
       const apiUrl = apiUrlEl.value.trim();
@@ -267,10 +274,12 @@ async function loadSettings() {
           await fetchAvailableModels(apiUrl, apiKey);
         } catch (error) {
           console.error("自动获取模型列表失败:", error);
-          modelSelectEl.innerHTML = '<option value="">获取模型列表失败</option>';
+          modelSelectEl.innerHTML =
+            '<option value="">获取模型列表失败</option>';
         }
       } else {
-        modelSelectEl.innerHTML = '<option value="">请先填写必要的配置</option>';
+        modelSelectEl.innerHTML =
+          '<option value="">请先填写必要的配置</option>';
       }
     } else if (config.models) {
       // 使用预定义的模型列表
@@ -292,22 +301,22 @@ let conversationHistory = [];
 
 // 修改 chat 函数
 let currentStreamDiv = null;
-let currentStreamContent = '';
+let currentStreamContent = "";
 
 // 设置流式响应监听器
 async function setupStreamListener() {
-  await listen('stream-response', (event) => {
+  await listen("stream-response", (event) => {
     if (currentStreamDiv) {
       currentStreamContent += event.payload;
       currentStreamDiv.innerHTML = `AI：${marked.parse(currentStreamContent)}`;
-      
+
       // 触发 MathJax 重新渲染
       if (window.MathJax) {
         window.MathJax.typesetPromise([currentStreamDiv]).catch((err) => {
-          console.error('MathJax rendering failed:', err);
+          console.error("MathJax rendering failed:", err);
         });
       }
-      
+
       chatLogEl.scrollTop = chatLogEl.scrollHeight;
     }
   });
@@ -329,7 +338,7 @@ async function chat() {
 
     const apiType = apiSelectEl.value;
     const config = API_CONFIGS[apiType];
-    
+
     let apiUrl;
     if (config.needsUrl) {
       apiUrl = apiUrlEl.value.trim();
@@ -344,9 +353,9 @@ async function chat() {
     const model = modelSelectEl.value;
     messageOutputEl.textContent = "";
     messageInputEl.value = "";
-    
+
     const messageId = Date.now().toString();
-    
+
     // 构建带有上下文的消息
     let contextMessage = message;
     if (conversationHistory.length > 0) {
@@ -358,45 +367,43 @@ async function chat() {
           contextPairs.push(`${userMsg.content}\n回答:${aiMsg.content}`);
         }
       }
-      contextMessage = `${contextPairs.join('\n')}\n${message}`;
+      contextMessage = `${contextPairs.join("\n")}\n${message}`;
     }
-    
+
     // 添加用户消息到历史记录
     conversationHistory.push({
       role: "user",
-      content: message
+      content: message,
     });
-    
-    appendMessage('user', message);
-    
+
+    appendMessage("user", message);
+
     // 创建新的流式响应div
-    currentStreamContent = '';
-    currentStreamDiv = document.createElement('div');
-    currentStreamDiv.className = 'message ai';
-    currentStreamDiv.textContent = 'AI：正在思考...';
+    currentStreamContent = "";
+    currentStreamDiv = document.createElement("div");
+    currentStreamDiv.className = "message ai";
+    currentStreamDiv.textContent = "AI：正在思考...";
     chatLogEl.appendChild(currentStreamDiv);
-    
+
     try {
       const response = await invoke("chat", {
         message: contextMessage,
         apiKey,
         apiUrl,
         model,
-        history: []
+        history: [],
       });
-      
+
       // 流式响应完成后，保存到历史记录
       conversationHistory.push({
         role: "assistant",
-        content: currentStreamContent
+        content: currentStreamContent,
       });
-      
     } catch (error) {
       currentStreamDiv.remove();
       messageOutputEl.textContent = `错误：${error}`;
       conversationHistory.pop(); // 发生错误时，回滚最后一条用户消息
     }
-
   } catch (error) {
     console.error("Error:", error);
     messageOutputEl.textContent = `错误：${error}`;
@@ -405,32 +412,32 @@ async function chat() {
 
 // 修改 appendMessage 函数，确保消息按顺序显示
 function appendMessage(role, content) {
-  const messageDiv = document.createElement('div');
+  const messageDiv = document.createElement("div");
   messageDiv.className = `message ${role}`;
-  
-  if (role === 'user') {
+
+  if (role === "user") {
     messageDiv.textContent = `你：${content}`;
   } else {
     // 对 AI 回复使用 Markdown 渲染
     messageDiv.innerHTML = `AI：${marked.parse(content)}`;
-    
+
     // 触发 MathJax 重新渲染
     if (window.MathJax) {
       window.MathJax.typesetPromise([messageDiv]).catch((err) => {
-        console.error('MathJax rendering failed:', err);
+        console.error("MathJax rendering failed:", err);
       });
     }
   }
-  
+
   chatLogEl.appendChild(messageDiv);
   chatLogEl.scrollTop = chatLogEl.scrollHeight;
 }
 
 // 添加清除历史的函数
 function clearHistory() {
-    conversationHistory = [];
-    chatLogEl.innerHTML = '';
-    messageOutputEl.textContent = '';
+  conversationHistory = [];
+  chatLogEl.innerHTML = "";
+  messageOutputEl.textContent = "";
 }
 
 window.addEventListener("DOMContentLoaded", async () => {
@@ -441,7 +448,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   modelSelectEl = document.querySelector("#model-select");
   apiSelectEl = document.querySelector("#api-select");
   apiUrlEl = document.querySelector("#api-url");
-  
+
   // 确保聊天记录区域存在
   if (!chatLogEl) {
     console.error("Chat log element not found!");
@@ -453,24 +460,26 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   // 设置流式响应监听器
   await setupStreamListener();
-  
+
   // 加载设置（现在是异步的）
   await loadSettings();
 
   // 设置主题切换按钮事件
-  document.querySelector("#theme-toggle").addEventListener("click", toggleTheme);
-  
+  document
+    .querySelector("#theme-toggle")
+    .addEventListener("click", toggleTheme);
+
   // 设置 API 选择变化事件
   apiSelectEl.addEventListener("change", () => {
     handleApiChange();
     saveSettings();
   });
-  
+
   // 设置保存事件
   apiKeyEl.addEventListener("change", saveSettings);
   apiUrlEl.addEventListener("change", saveSettings);
   modelSelectEl.addEventListener("change", saveSettings);
-  
+
   document.querySelector("#greet-form").addEventListener("submit", (e) => {
     e.preventDefault();
     chat();
@@ -488,7 +497,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   const handleApiConfigChange = debounce(async () => {
     const apiUrl = apiUrlEl.value.trim();
     const apiKey = apiKeyEl.value.trim();
-    
+
     // 如果是自定义 API 或者配置发生变化，尝试获取模型列表
     if (apiUrl && apiKey) {
       try {
@@ -500,19 +509,22 @@ window.addEventListener("DOMContentLoaded", async () => {
         modelSelectEl.innerHTML = '<option value="">获取模型列表失败</option>';
       }
     } else {
-      modelSelectEl.innerHTML = '<option value="">请输入完整的 API 配置</option>';
+      modelSelectEl.innerHTML =
+        '<option value="">请输入完整的 API 配置</option>';
     }
   }, 500); // 500ms 的防抖延迟
 
   // 为 API 配置相关输入框添加事件监听
   apiUrlEl.addEventListener("input", handleApiConfigChange);
   apiKeyEl.addEventListener("input", handleApiConfigChange);
-  
+
   // 初始触发一次检查
-  if (apiSelectEl.value === 'custom') {
+  if (apiSelectEl.value === "custom") {
     handleApiConfigChange();
   }
 
   // 添加清除历史按钮的事件监听
-  document.querySelector("#clear-history")?.addEventListener("click", clearHistory);
+  document
+    .querySelector("#clear-history")
+    ?.addEventListener("click", clearHistory);
 });
