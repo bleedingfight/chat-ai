@@ -56,6 +56,7 @@ jobs:
             ${{ matrix.platform == 'macos-latest' && 'src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg' || '' }}
             ${{ matrix.platform == 'ubuntu-22.04' && 'src-tauri/target/release/bundle/rpm/*.rpm' || '' }}
             ${{ matrix.platform == 'ubuntu-22.04' && 'src-tauri/target/release/bundle/deb/*.deb' || '' }}
+            ${{ matrix.platform == 'ubuntu-22.04' && 'src-tauri/target/release/bundle/appimage/*.AppImage' || '' }}
             ${{ matrix.platform == 'windows-latest' && 'src-tauri/target/release/bundle/msi/*.msi' || '' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
