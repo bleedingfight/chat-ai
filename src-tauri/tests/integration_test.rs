@@ -17,9 +17,13 @@ fn test_complete_workflow() {
     assert!(save_api_key("test-key".to_string()).is_ok());
     assert!(save_api_url("https://test.api.com".to_string()).is_ok());
     
+    let cache_dir = get_cache_dir();
+    let api_keys_path = cache_dir.join("api_keys.enc");
+    let api_url_path = cache_dir.join("api_url.enc");
+    
     // 2. 验证凭证已保存
-    assert!(get_api_key().is_ok());
-    assert!(get_api_url().is_ok());
+    assert!(get_api_key(api_keys_path.clone()).is_ok());
+    assert!(get_api_url(api_url_path.clone()).is_ok());
     
     // 3. 创建聊天消息
     let message = ChatMessage {
@@ -38,8 +42,8 @@ fn test_complete_workflow() {
     update_frequency("gpt-3.5-turbo".to_string(), true);
     
     // 6. 清理测试数据
-    assert!(remove_api_key().is_ok());
-    assert!(remove_api_url().is_ok());
+    assert!(remove_api_key(api_keys_path).is_ok());
+    assert!(remove_api_url(api_url_path).is_ok());
 }
 
 #[test]
@@ -53,21 +57,25 @@ fn test_cache_operations() {
     update_frequency("gpt-4".to_string(), true);
     
     // 3. 保存频率数据
-    save_frequencies();
+    let frequency_file = cache_dir.join("frequency.json");
+    save_frequencies(frequency_file.clone());
     
     // 4. 验证频率文件存在
-    let frequency_file = cache_dir.join("frequency.json");
     assert!(frequency_file.exists());
 }
 
 #[test]
 fn test_error_handling() {
     // 1. 测试未设置 API key 的错误处理
-    let result = get_api_key();
+    let cache_dir = get_cache_dir();
+    let api_keys_path = cache_dir.join("api_keys.enc");
+    let api_url_path = cache_dir.join("api_url.enc");
+    
+    let result = get_api_key(api_keys_path);
     assert!(result.is_err());
     
     // 2. 测试未设置 API URL 的错误处理
-    let result = get_api_url();
+    let result = get_api_url(api_url_path);
     assert!(result.is_err());
     
     // 3. 测试空 API key
@@ -90,9 +98,12 @@ fn test_concurrent_access() {
                 // 更新频率统计
                 update_frequency(format!("model-{}", i), true);
                 
+                let cache_dir = get_cache_dir();
+                let api_keys_path = cache_dir.join("api_keys.enc");
+                
                 // 测试 API key 操作
                 let _ = save_api_key(format!("test-key-{}", i));
-                let _ = remove_api_key();
+                let _ = remove_api_key(api_keys_path);
             })
         })
         .collect();
@@ -103,5 +114,7 @@ fn test_concurrent_access() {
     }
     
     // 保存频率数据
-    save_frequencies();
+    let cache_dir = get_cache_dir();
+    let frequency_file = cache_dir.join("frequency.json");
+    save_frequencies(frequency_file);
 }

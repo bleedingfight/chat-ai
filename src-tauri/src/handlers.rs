@@ -6,7 +6,7 @@ use std::fs;
 use tauri::{Window, Emitter};
 use crate::chat::{ChatMessage, ChatPayload, StreamResponse};
 use crate::models::{AvailableModelsResponse, ModelsResponse, ModelFrequency};
-use crate::cache::{get_cache_dir, MODEL_FREQUENCIES, update_frequency, encrypt_api_key, decrypt_api_key, delete_api_key, encrypt_api_url, decrypt_api_url, delete_api_url};
+use crate::cache::{API_KEYS_FILE, API_URL_FILE, get_cache_dir, MODEL_FREQUENCIES, update_frequency, encrypt_data, decrypt_data_from_file, delete_api_key, encrypt_api_url, delete_api_url};
 use std::path::PathBuf;
 
 #[tauri::command]
@@ -240,17 +240,25 @@ pub fn save_api_key(api_key: String) -> Result<(), String> {
     if api_key.trim().is_empty() {
         return Err("API key cannot be empty".to_string());
     }
-    encrypt_api_key(&api_key)
+    
+    let encrypted = crate::cache::encrypt_data(&api_key)?;
+    let cache_dir = get_cache_dir();
+    fs::create_dir_all(&cache_dir).map_err(|e| format!("无法创建缓存目录: {}", e))?;
+    fs::write(cache_dir.join(API_KEYS_FILE), encrypted).map_err(|e| format!("无法保存加密数据: {}", e))?;
+    Ok(())
 }
 
 #[tauri::command]
 pub fn get_api_key(api_keys_path: std::path::PathBuf) -> Result<String, String> {
-    decrypt_api_key(api_keys_path)
+    if !api_keys_path.exists() {
+        return Err("API key 未设置".to_string());
+    }
+    decrypt_data_from_file(api_keys_path)
 }
 
 #[tauri::command]
-pub fn remove_api_key() -> Result<(), String> {
-    delete_api_key()
+pub fn remove_api_key(api_keys_path: std::path::PathBuf) -> Result<(), String> {
+    delete_api_key(api_keys_path)
 }
 
 #[tauri::command]
@@ -258,15 +266,23 @@ pub fn save_api_url(api_url: String) -> Result<(), String> {
     if api_url.trim().is_empty() {
         return Err("API URL cannot be empty".to_string());
     }
-    encrypt_api_url(&api_url)
+    
+    let encrypted = encrypt_api_url(&api_url)?;
+    let cache_dir = get_cache_dir();
+    fs::create_dir_all(&cache_dir).map_err(|e| format!("无法创建缓存目录: {}", e))?;
+    fs::write(cache_dir.join(API_URL_FILE), encrypted).map_err(|e| format!("无法保存加密数据: {}", e))?;
+    Ok(())
 }
 
 #[tauri::command]
-pub fn get_api_url() -> Result<String, String> {
-    decrypt_api_url()
+pub fn get_api_url(api_url_path: std::path::PathBuf) -> Result<String, String> {
+    if !api_url_path.exists() {
+        return Err("API URL 未设置".to_string());
+    }
+    decrypt_data_from_file(api_url_path)
 }
 
 #[tauri::command]
-pub fn remove_api_url() -> Result<(), String> {
-    delete_api_url()
+pub fn remove_api_url(api_url_path: std::path::PathBuf) -> Result<(), String> {
+    delete_api_url(api_url_path)
 }
