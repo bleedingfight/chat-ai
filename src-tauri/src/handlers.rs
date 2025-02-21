@@ -7,6 +7,12 @@ use tauri::{Window, Emitter};
 use crate::chat::{ChatMessage, ChatPayload, StreamResponse};
 use crate::models::{AvailableModelsResponse, ModelsResponse, ModelFrequency};
 use crate::cache::{get_cache_dir, MODEL_FREQUENCIES, update_frequency, encrypt_api_key, decrypt_api_key, delete_api_key, encrypt_api_url, decrypt_api_url, delete_api_url};
+use std::path::PathBuf;
+
+#[tauri::command]
+pub fn get_cache_directory() -> PathBuf {
+    get_cache_dir()
+}
 
 #[tauri::command]
 pub async fn chat(window: Window, message: String, api_key: String, api_url: String, model: String, history: Vec<ChatMessage>) -> Result<String, String> {
@@ -238,8 +244,8 @@ pub fn save_api_key(api_key: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn get_api_key() -> Result<String, String> {
-    decrypt_api_key()
+pub fn get_api_key(api_keys_path: std::path::PathBuf) -> Result<String, String> {
+    decrypt_api_key(api_keys_path)
 }
 
 #[tauri::command]

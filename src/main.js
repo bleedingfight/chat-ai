@@ -231,7 +231,9 @@ async function loadSettings() {
   // 从加密存储获取 API key 和 URL
   try {
     const [savedApiKey, savedApiUrl] = await Promise.all([
-      invoke("get_api_key").catch(() => null),
+      invoke("get_api_key", {
+        api_keys_path: await invoke("get_cache_directory").then(dir => `${dir}/api_keys.enc`)
+      }).catch(() => null),
       invoke("get_api_url").catch(() => null),
     ]);
 
