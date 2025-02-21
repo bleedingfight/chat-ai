@@ -302,11 +302,39 @@ let conversationHistory = [];
 // 修改 chat 函数
 let currentStreamDiv = null;
 let currentStreamContent = "";
+let userScrolled = false;
+
+// 监听聊天记录的滚动事件
+function setupScrollListener() {
+  chatLogEl.addEventListener('scroll', () => {
+    // 检查是否是用户手动滚动
+    const isAtBottom = chatLogEl.scrollHeight - chatLogEl.scrollTop <= chatLogEl.clientHeight + 50;
+    userScrolled = !isAtBottom;
+  });
+}
+
+// 智能滚动函数
+function smartScroll() {
+  if (!userScrolled) {
+    chatLogEl.scrollTop = chatLogEl.scrollHeight;
+  }
+}
 
 // 设置流式响应监听器
 async function setupStreamListener() {
   await listen("stream-response", (event) => {
     if (currentStreamDiv) {
+      // 第一次收到响应时
+      if (!currentStreamContent) {
+        // 移除思考状态div（它是currentStreamDiv的前一个兄弟元素）
+        const thinkingDiv = currentStreamDiv.previousSibling;
+        if (thinkingDiv) {
+          thinkingDiv.remove();
+        }
+        // 显示响应div
+        currentStreamDiv.style.display = "block";
+      }
+
       currentStreamContent += event.payload;
       currentStreamDiv.innerHTML = `AI：${marked.parse(currentStreamContent)}`;
 
@@ -317,7 +345,7 @@ async function setupStreamListener() {
         });
       }
 
-      chatLogEl.scrollTop = chatLogEl.scrollHeight;
+      smartScroll();
     }
   });
 }
@@ -380,9 +408,19 @@ async function chat() {
 
     // 创建新的流式响应div
     currentStreamContent = "";
+    // 创建思考状态的div
+    const thinkingDiv = document.createElement("div");
+    thinkingDiv.className = "message ai";
+    const thinkingSpan = document.createElement("span");
+    thinkingSpan.className = "thinking-text";
+    thinkingSpan.textContent = "AI：正在思考";
+    thinkingDiv.appendChild(thinkingSpan);
+    chatLogEl.appendChild(thinkingDiv);
+
+    // 创建用于显示响应的div
     currentStreamDiv = document.createElement("div");
     currentStreamDiv.className = "message ai";
-    currentStreamDiv.textContent = "AI：正在思考...";
+    currentStreamDiv.style.display = "none";
     chatLogEl.appendChild(currentStreamDiv);
 
     try {
@@ -399,6 +437,9 @@ async function chat() {
         role: "assistant",
         content: currentStreamContent,
       });
+      
+      // 重置滚动状态，为下一次对话准备
+      userScrolled = false;
     } catch (error) {
       currentStreamDiv.remove();
       messageOutputEl.textContent = `错误：${error}`;
@@ -430,7 +471,7 @@ function appendMessage(role, content) {
   }
 
   chatLogEl.appendChild(messageDiv);
-  chatLogEl.scrollTop = chatLogEl.scrollHeight;
+  smartScroll();
 }
 
 // 添加清除历史的函数
@@ -460,6 +501,9 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   // 设置流式响应监听器
   await setupStreamListener();
+
+  // 设置滚动监听器
+  setupScrollListener();
 
   // 加载设置（现在是异步的）
   await loadSettings();

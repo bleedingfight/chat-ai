@@ -14,8 +14,70 @@ use chat_ai_lib::cache::{
 
 #[test]
 fn test_cache_directory() {
+    // 清理可能存在的环境变量
+    std::env::remove_var("CHATAICACHE");
+    
     let cache_dir = get_cache_dir();
-    assert!(cache_dir.ends_with(".cache/chat-ai"));
+    
+    if cfg!(target_os = "windows") {
+        // Windows路径测试
+        let path_str = cache_dir.to_string_lossy();
+        assert!(
+            path_str.contains("AppData\\Local\\chat-ai") ||
+            path_str.ends_with("\\chat-ai"),
+            "Windows路径格式不正确: {}",
+            path_str
+        );
+    } else {
+        // Unix/Linux/macOS路径测试
+        assert!(
+            cache_dir.ends_with(".cache/chat-ai"),
+            "Unix路径格式不正确: {}",
+            cache_dir.to_string_lossy()
+        );
+    }
+}
+
+#[test]
+fn test_cache_directory_with_env() {
+    // 测试CHATAICACHE环境变量覆盖
+    let test_path = if cfg!(target_os = "windows") {
+        "C:\\test\\cache\\path"
+    } else {
+        "/test/cache/path"
+    };
+    std::env::set_var("CHATAICACHE", test_path);
+    
+    let cache_dir = get_cache_dir();
+    assert_eq!(
+        cache_dir.to_string_lossy(),
+        test_path,
+        "环境变量路径未正确应用"
+    );
+    
+    // 清理环境变量
+    std::env::remove_var("CHATAICACHE");
+}
+
+#[cfg(target_os = "windows")]
+#[test]
+fn test_windows_fallback_path() {
+    // 清理环境变量
+    std::env::remove_var("CHATAICACHE");
+    std::env::remove_var("LOCALAPPDATA");
+    
+    // 设置USERPROFILE用于测试降级路径
+    std::env::set_var("USERPROFILE", "C:\\Users\\TestUser");
+    
+    let cache_dir = get_cache_dir();
+    assert!(
+        cache_dir.to_string_lossy().ends_with("\\AppData\\Local\\chat-ai"),
+        "Windows降级路径不正确: {}",
+        cache_dir.to_string_lossy()
+    );
+    
+    // 清理环境变量
+    std::env::remove_var("USERPROFILE");
 }
 
 #[test]
