@@ -3,10 +3,10 @@
 
 use std::env;
 
-mod models;
-mod chat;
 mod cache;
+mod chat;
 mod handlers;
+mod models;
 
 fn main() {
     #[cfg(debug_assertions)]
@@ -14,6 +14,9 @@ fn main() {
         env::set_var("RUST_LOG", "info");
         env_logger::init();
     }
+    // 修复wayland下nvidia显示错误
+    std::env::set_var("__GL_THREADED_OPTIMIZATIONS", "0");
+    std::env::set_var("__NV_DISABLE_EXPLICIT_SYNC", "1");
 
     let app = tauri::Builder::default()
         .setup(|_| Ok(()))

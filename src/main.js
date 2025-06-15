@@ -23,7 +23,7 @@ const API_CONFIGS = {
     models: ["gpt-4", "gpt-3.5-turbo"],
   },
   custom: {
-    url: "https://api.youservice.cn/v1/chat/completions",
+    url: "https://api.moonshot.cn/v1/chat/completions",
     needsKey: true,
     needsUrl: true,
   },
@@ -232,7 +232,9 @@ async function loadSettings() {
   try {
     const [savedApiKey, savedApiUrl] = await Promise.all([
       invoke("get_api_key", {
-        api_keys_path: await invoke("get_cache_directory").then(dir => `${dir}/api_keys.enc`)
+        api_keys_path: await invoke("get_cache_directory").then(
+          (dir) => `${dir}/api_keys.enc`,
+        ),
       }).catch(() => null),
       invoke("get_api_url").catch(() => null),
     ]);
@@ -308,9 +310,11 @@ let userScrolled = false;
 
 // 监听聊天记录的滚动事件
 function setupScrollListener() {
-  chatLogEl.addEventListener('scroll', () => {
+  chatLogEl.addEventListener("scroll", () => {
     // 检查是否是用户手动滚动
-    const isAtBottom = chatLogEl.scrollHeight - chatLogEl.scrollTop <= chatLogEl.clientHeight + 50;
+    const isAtBottom =
+      chatLogEl.scrollHeight - chatLogEl.scrollTop <=
+      chatLogEl.clientHeight + 50;
     userScrolled = !isAtBottom;
   });
 }
@@ -439,7 +443,7 @@ async function chat() {
         role: "assistant",
         content: currentStreamContent,
       });
-      
+
       // 重置滚动状态，为下一次对话准备
       userScrolled = false;
     } catch (error) {
