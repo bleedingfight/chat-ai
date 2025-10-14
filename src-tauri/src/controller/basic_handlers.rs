@@ -1,13 +1,13 @@
-use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE};
-use log::{debug, error};
-use std::time::Instant;
+use crate::model::model_cache::*;
+use crate::view::chat::*;
+use crate::view::models::*;
 use futures_util::StreamExt;
+use log::{debug, error};
+use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE};
 use std::fs;
-use tauri::{Window, Emitter};
-use crate::chat::{ChatMessage, ChatPayload, StreamResponse};
-use crate::models::{AvailableModelsResponse, ModelsResponse, ModelFrequency};
-use crate::cache::{API_KEYS_FILE, API_URL_FILE, get_cache_dir, MODEL_FREQUENCIES, update_frequency, encrypt_data, decrypt_data_from_file, delete_api_key, encrypt_api_url, delete_api_url};
 use std::path::PathBuf;
+use std::time::Instant;
+use tauri::{Emitter, Window};
 
 #[tauri::command]
 pub fn get_cache_directory() -> PathBuf {
@@ -15,23 +15,29 @@ pub fn get_cache_directory() -> PathBuf {
 }
 
 #[tauri::command]
-pub async fn chat(window: Window, message: String, api_key: String, api_url: String, model: String, history: Vec<ChatMessage>) -> Result<String, String> {
+pub async fn chat(
+    window: Window,
+    message: String,
+    api_key: String,
+    api_url: String,
+    model: String,
+    history: Vec<ChatMessage>,
+) -> Result<String, String> {
     debug!("收到请求:");
     debug!("API URL: {}", api_url);
     debug!("Model: {}", model);
     debug!("Message: {}", message);
     debug!("API Key: {}****", &api_key[..4]);
-    
+
     let start_time = Instant::now();
-    
+
     let client = reqwest::Client::new();
-    
+
     let mut headers = HeaderMap::new();
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
     headers.insert(
         AUTHORIZATION,
-        HeaderValue::from_str(&format!("Bearer {}", api_key))
-            .map_err(|e| e.to_string())?
+        HeaderValue::from_str(&format!("Bearer {}", api_key)).map_err(|e| e.to_string())?,
     );
 
     let mut messages = history;
@@ -69,19 +75,21 @@ pub async fn chat(window: Window, message: String, api_key: String, api_url: Str
     while let Some(chunk) = stream.next().await {
         let chunk = chunk.map_err(|e| e.to_string())?;
         let chunk_str = String::from_utf8_lossy(&chunk);
-        
+
         for line in chunk_str.lines() {
             if line.starts_with("data: ") {
                 let data = &line["data: ".len()..];
                 if data == "[DONE]" {
                     continue;
                 }
-                
+
                 if let Ok(stream_response) = serde_json::from_str::<StreamResponse>(data) {
                     if let Some(choice) = stream_response.choices.first() {
                         if let Some(content) = &choice.delta.content {
                             // 发送流式内容到前端
-                            window.emit("stream-response", &content).map_err(|e| e.to_string())?;
+                            window
+                                .emit("stream-response", &content)
+                                .map_err(|e| e.to_string())?;
                             total_content.push_str(content);
                         }
                     }
@@ -93,19 +101,21 @@ pub async fn chat(window: Window, message: String, api_key: String, api_url: Str
     update_frequency(model, true);
 
     let elapsed = start_time.elapsed();
-    Ok(format!("流式响应完成\n<p style=\"color: green\">响应耗时: {:.2}秒</p>", elapsed.as_secs_f64()))
+    Ok(format!(
+        "流式响应完成\n<p style=\"color: green\">响应耗时: {:.2}秒</p>",
+        elapsed.as_secs_f64()
+    ))
 }
 
 /// 从 API 获取模型列表
 async fn fetch_models_from_api(api_url: &str, api_key: &str) -> Result<Vec<String>, String> {
     let client = reqwest::Client::new();
-    
+
     let mut headers = HeaderMap::new();
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
     headers.insert(
         AUTHORIZATION,
-        HeaderValue::from_str(&format!("Bearer {}", api_key))
-            .map_err(|e| e.to_string())?
+        HeaderValue::from_str(&format!("Bearer {}", api_key)).map_err(|e| e.to_string())?,
     );
 
     // 构建 models API URL
@@ -134,7 +144,11 @@ async fn fetch_models_from_api(api_url: &str, api_key: &str) -> Result<Vec<Strin
         })?;
 
     if !response.status().is_success() {
-        let error_msg = format!("获取模型列表失败，状态码: {}，URL: {}", response.status(), models_url);
+        let error_msg = format!(
+            "获取模型列表失败，状态码: {}，URL: {}",
+            response.status(),
+            models_url
+        );
         error!("{}", error_msg);
         return Err(error_msg);
     }
@@ -151,11 +165,12 @@ async fn fetch_models_from_api(api_url: &str, api_key: &str) -> Result<Vec<Strin
         format!("解析模型列表失败: {}. 响应内容: {}", e, response_text)
     })?;
 
-    let mut models: Vec<String> = models_response.data
+    let mut models: Vec<String> = models_response
+        .data
         .into_iter()
         .map(|model| model.id)
         .collect();
-    
+
     // 对模型列表进行字母顺序排序
     models.sort();
 
@@ -165,30 +180,32 @@ async fn fetch_models_from_api(api_url: &str, api_key: &str) -> Result<Vec<Strin
 /// 将模型列表写入配置文件
 fn write_models_to_file(models: &[String], frequency_file: &std::path::Path) -> Result<(), String> {
     let mut frequencies = MODEL_FREQUENCIES.lock().unwrap();
-    
+
     // 初始化或更新模型频率
     for model in models {
         frequencies.entry(model.clone()).or_insert(0);
     }
-    
+
     // 将频率数据写入文件
     let frequency_data = ModelFrequency {
         frequencies: frequencies.clone(),
     };
-    
+
     serde_json::to_string_pretty(&frequency_data)
         .map_err(|e| format!("序列化频率数据失败: {}", e))
         .and_then(|json| {
-            fs::write(frequency_file, json)
-                .map_err(|e| format!("写入频率文件失败: {}", e))
+            fs::write(frequency_file, json).map_err(|e| format!("写入频率文件失败: {}", e))
         })
 }
 
 #[tauri::command]
-pub async fn fetch_models(api_url: String, api_key: String) -> Result<AvailableModelsResponse, String> {
+pub async fn fetch_models(
+    api_url: String,
+    api_key: String,
+) -> Result<AvailableModelsResponse, String> {
     let cache_dir = get_cache_dir();
     let frequency_file = cache_dir.join("frequency.json");
-    
+
     // 尝试从配置文件读取模型列表
     let models = if frequency_file.exists() {
         // 读取并解析配置文件
@@ -200,12 +217,13 @@ pub async fn fetch_models(api_url: String, api_key: String) -> Result<AvailableM
             }) {
             Ok(frequency_data) => {
                 // 过滤掉 value=-1 的模型
-                let valid_models: Vec<String> = frequency_data.frequencies
+                let valid_models: Vec<String> = frequency_data
+                    .frequencies
                     .into_iter()
                     .filter(|(_, freq)| *freq != -1)
                     .map(|(model, _)| model)
                     .collect();
-                
+
                 if valid_models.is_empty() {
                     // 如果过滤后没有有效模型，从 API 获取
                     debug!("配置文件中没有有效模型，从 API 获取");
@@ -240,11 +258,12 @@ pub fn save_api_key(api_key: String) -> Result<(), String> {
     if api_key.trim().is_empty() {
         return Err("API key cannot be empty".to_string());
     }
-    
-    let encrypted = crate::cache::encrypt_data(&api_key)?;
+
+    let encrypted = encrypt_data(&api_key)?;
     let cache_dir = get_cache_dir();
     fs::create_dir_all(&cache_dir).map_err(|e| format!("无法创建缓存目录: {}", e))?;
-    fs::write(cache_dir.join(API_KEYS_FILE), encrypted).map_err(|e| format!("无法保存加密数据: {}", e))?;
+    fs::write(cache_dir.join(API_KEYS_FILE), encrypted)
+        .map_err(|e| format!("无法保存加密数据: {}", e))?;
     Ok(())
 }
 
@@ -266,11 +285,12 @@ pub fn save_api_url(api_url: String) -> Result<(), String> {
     if api_url.trim().is_empty() {
         return Err("API URL cannot be empty".to_string());
     }
-    
+
     let encrypted = encrypt_api_url(&api_url)?;
     let cache_dir = get_cache_dir();
     fs::create_dir_all(&cache_dir).map_err(|e| format!("无法创建缓存目录: {}", e))?;
-    fs::write(cache_dir.join(API_URL_FILE), encrypted).map_err(|e| format!("无法保存加密数据: {}", e))?;
+    fs::write(cache_dir.join(API_URL_FILE), encrypted)
+        .map_err(|e| format!("无法保存加密数据: {}", e))?;
     Ok(())
 }
 

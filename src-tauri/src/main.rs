@@ -1,13 +1,12 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod controller;
+mod model;
+mod view;
+use crate::controller::basic_handlers::*;
+use crate::model::model_cache as cache;
 use std::env;
-
-mod cache;
-mod chat;
-mod handlers;
-mod models;
-
 fn main() {
     #[cfg(debug_assertions)]
     {
@@ -21,9 +20,9 @@ fn main() {
     let app = tauri::Builder::default()
         .setup(|_| Ok(()))
         .invoke_handler(tauri::generate_handler![
-            handlers::chat,
-            handlers::fetch_models,
-            handlers::get_cache_directory
+            chat,
+            fetch_models,
+            get_cache_directory
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

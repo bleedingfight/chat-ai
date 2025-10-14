@@ -1,17 +1,18 @@
-use std::collections::HashMap;
-use std::fs;
-use std::path::PathBuf;
-use std::env;
-use std::sync::Mutex;
-use log::error;
-use lazy_static::lazy_static;
-use crate::models::ModelFrequency;
+use crate::model::model_config::*;
+use crate::view::models::ModelFrequency;
 use aes_gcm::{
     aead::{Aead, KeyInit},
     Aes256Gcm, Nonce,
 };
-use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
+use lazy_static::lazy_static;
+use log::error;
 use rand::RngCore;
+use std::collections::HashMap;
+use std::env;
+use std::fs;
+use std::path::PathBuf;
+use std::sync::Mutex;
 
 const KEY_FILE: &str = "encryption.key";
 pub const API_KEYS_FILE: &str = "api_keys.enc";
@@ -60,8 +61,7 @@ pub fn get_cache_dir() -> PathBuf {
                 PathBuf::from(app_data).join("chat-ai")
             } else {
                 // 降级方案：使用 %USERPROFILE%\AppData\Local\chat-ai
-                let user_profile = env::var("USERPROFILE")
-                    .unwrap_or_else(|_| String::from("C:\\"));
+                let user_profile = env::var("USERPROFILE").unwrap_or_else(|_| String::from("C:\\"));
                 PathBuf::from(user_profile)
                     .join("AppData")
                     .join("Local")
@@ -77,25 +77,25 @@ pub fn get_cache_dir() -> PathBuf {
 
 pub fn encrypt_data(data: &str) -> Result<String, String> {
     init_cipher()?;
-    
+
     let cipher = CIPHER.lock().map_err(|e| e.to_string())?;
     let cipher = cipher.as_ref().unwrap();
-    
+
     // 生成随机 nonce
     let mut nonce = [0u8; 12];
     rand::rng().fill_bytes(&mut nonce);
     let nonce = Nonce::from_slice(&nonce);
-    
+
     // 加密数据
     let encrypted = cipher
         .encrypt(nonce, data.as_bytes())
         .map_err(|e| format!("加密失败: {}", e))?;
-    
+
     // 将 nonce 和加密数据合并并进行 base64 编码
     let mut combined = nonce.to_vec();
     combined.extend(encrypted);
     let encoded = BASE64.encode(combined);
-    
+
     Ok(encoded)
 }
 
@@ -104,7 +104,7 @@ pub fn save_frequencies(frequency_file: PathBuf) {
     let frequency_data = ModelFrequency {
         frequencies: frequencies.clone(),
     };
-    
+
     // 确保父目录存在
     if let Some(parent) = frequency_file.parent() {
         if let Err(e) = fs::create_dir_all(parent) {
@@ -112,7 +112,7 @@ pub fn save_frequencies(frequency_file: PathBuf) {
             return;
         }
     }
-    
+
     if let Ok(json) = serde_json::to_string_pretty(&frequency_data) {
         if let Err(e) = fs::write(&frequency_file, json) {
             error!("保存频率数据失败: {}", e);
@@ -136,32 +136,31 @@ pub fn encrypt_api_key(api_key: &str) -> Result<String, String> {
 
 pub fn decrypt_data_from_file(file_path: PathBuf) -> Result<String, String> {
     init_cipher()?;
-    
+
     let cipher = CIPHER.lock().map_err(|e| e.to_string())?;
     let cipher = cipher.as_ref().unwrap();
-    
-    let encrypted = fs::read(&file_path)
-        .map_err(|e| format!("无法读取加密数据: {}", e))?;
-    
+
+    let encrypted = fs::read(&file_path).map_err(|e| format!("无法读取加密数据: {}", e))?;
+
     // base64 解码
-    let decoded = BASE64.decode(encrypted)
+    let decoded = BASE64
+        .decode(encrypted)
         .map_err(|e| format!("无法解码数据: {}", e))?;
-    
+
     if decoded.len() < 12 {
         return Err("无效的加密数据".to_string());
     }
-    
+
     // 分离 nonce 和加密数据
     let (nonce, encrypted_data) = decoded.split_at(12);
     let nonce = Nonce::from_slice(nonce);
-    
+
     // 解密数据
     let decrypted = cipher
         .decrypt(nonce, encrypted_data)
         .map_err(|e| format!("解密失败: {}", e))?;
-    
-    String::from_utf8(decrypted)
-        .map_err(|e| format!("无法解析解密数据: {}", e))
+
+    String::from_utf8(decrypted).map_err(|e| format!("无法解析解密数据: {}", e))
 }
 
 pub fn encrypt_api_url(api_url: &str) -> Result<String, String> {
@@ -170,18 +169,17 @@ pub fn encrypt_api_url(api_url: &str) -> Result<String, String> {
 
 pub fn delete_api_key(api_keys_path: std::path::PathBuf) -> Result<(), String> {
     if api_keys_path.exists() {
-        fs::remove_file(api_keys_path)
-            .map_err(|e| format!("无法删除 API key: {}", e))?;
+        fs::remove_file(api_keys_path).map_err(|e| format!("无法删除 API key: {}", e))?;
     }
-    
+
     Ok(())
 }
 
 pub fn delete_api_url(api_url_path: PathBuf) -> Result<(), String> {
     if api_url_path.exists() {
-        fs::remove_file(api_url_path)
-            .map_err(|e| format!("无法删除 API URL: {}", e))?;
+        fs::remove_file(api_url_path).map_err(|e| format!("无法删除 API URL: {}", e))?;
     }
-    
+
     Ok(())
 }
+
